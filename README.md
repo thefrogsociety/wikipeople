@@ -52,27 +52,27 @@ Total People-to-People Links: 91,509
 
 # How to Use
 
-## Clone the repository:
+## 1. Clone the repository:
 
 git clone [https://github.com/your-username/wikipeople.git](https://github.com/your-username/wikipeople.git)
 cd wikipeople
 
-## Set up the environment:
+## 2. Set up the environment:
 
 python -m venv venv
 
-## Activate the environment (use venv\Scripts\activate on Windows)
+## 3. Activate the environment (use venv\Scripts\activate on Windows)
 
 source venv/bin/activate 
 
-## Install required libraries
+## 4. Install required libraries
 pip install pandas networkx requests 
 
-## Create requirements.txt (optional but good practice)
+## 5. Create requirements.txt (optional but good practice)
 pip freeze > requirements.txt 
 
 
-## Download the Data:
+## 6. Download the Data:
 
 Download the Simple English Wikipedia dump.
 
@@ -80,7 +80,7 @@ Get the file named simplewiki-latest-pages-articles-multistream.xml.bz2.
 
 Place it in the root of the wikipeople folder.
 
-## Run the Data Pipeline:
+## 7. Run the Data Pipeline:
 
 ### Parse the XML (Takes ~10-15 mins)
 python parse_wiki.py
@@ -92,7 +92,7 @@ python filter_people.py
 python create_full_json.py 
 
 
-## Run the Visualization:
+## 8. Run the Visualization:
 
 ### Start a simple web server from the wikipeople directory
 python -m http.server 8000 
@@ -101,7 +101,7 @@ python -m http.server 8000
 
 (The page will load full_graph.json, which might take a few seconds).
 
-## Run Analysis:
+## 9. Run Analysis (optional):
 
 ### Get statistics about the network
 python analyze.py 
