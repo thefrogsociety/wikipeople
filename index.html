@@ -4,206 +4,331 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WikiPeople Graph</title>
-
     <script src="https://cdn.tailwindcss.com"></script>
-
     <script src="https://d3js.org/d3.v7.min.js"></script>
-
-    <!--  The CSS styles -->
     <style>
-        body {
-            font-family: "Inter", sans-serif;
-            overflow: hidden; /* Hide scrollbars */
-            background-color: #201515; 
-        }
-
-        .links line {
-            stroke: #999;
-            stroke-opacity: 0.6;
-        }
-
-        .node-circle { 
-            stroke: #fff;
-            stroke-width: 1.5px;
-            cursor: pointer; 
-        }
-
-        .nodes-and-labels g text {
-            fill: #ccc; /* Light gray text */
-            font-size: 10px;
-            pointer-events: none; /* Text doesn't block mouse events */
-            text-anchor: middle; /* Center the text below the node */
-        }
-
-        #tooltip {
+        body { font-family: "Inter", sans-serif; overflow: hidden; background-color: #201515; }
+        .links line { stroke: #999; stroke-opacity: 0.6; }
+        .node-circle { stroke: #fff; stroke-width: 1.5px; cursor: pointer; }
+        .node-circle.highlighted { stroke: #ffcc00; stroke-width: 3px; }
+        .nodes-and-labels g text { fill: #ccc; font-size: 10px; pointer-events: none; text-anchor: middle; }
+        #tooltip { position: absolute; opacity: 0; background-color: #333; color: white; padding: 8px 12px; border-radius: 6px; pointer-events: none; transition: opacity 0.2s; font-size: 0.875rem; }
+        #search-controls { /* Renamed container for clarity */
             position: absolute;
-            opacity: 0;
-            background-color: #333;
-            color: white;
-            padding: 8px 12px;
-            border-radius: 6px;
-            pointer-events: none; /* Allows mouse events to pass through */
-            transition: opacity 0.2s;
-            font-size: 0.875rem;
+            top: 10px;
+            left: 10px;
+            z-index: 10;
         }
+        /* Style for the Visualize button */
+        #search-button {
+            background-color: #d8ff4d; /* Root node color */
+            color: #1a1a1a; /* Dark text for light button */
+            transition: background-color 0.2s; /* Add smooth hover effect */
+        }
+        #search-button:hover {
+            background-color: #b8cc3d; /* Slightly darker shade for hover */
+        }
+        /* Style for the default message */
+        #default-message {
+            color: #aaa;
+            font-size: 0.75rem; /* Smaller text */
+            margin-top: 4px;
+            font-style: italic;
+        }
+
+        /* Add style for loading indicator during search */
+        #search-loading { display: none; margin-left: 10px; font-style: italic; color: #aaa; }
     </style>
 </head>
-<!-- Removed Tailwind background class -->
 <body class="h-full text-gray-100">
 
-    <!-- The SVG (Scalable Vector Graphics) container -->
-    <svg id="graph-viz" class="w-full h-full"></svg>
-
-    <!-- The Tooltip element -->
-    <div id="tooltip"></div>
-
-    <!-- Loading message -->
-    <div id="loading" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-2xl">
-        Loading graph-viz.json...
+    <div id="search-controls">
+        <div id="search-container">
+            <!-- Input field remains styled with Tailwind -->
+            <input type="text" id="search-input" placeholder="Enter root person..." class="px-2 py-1 rounded border border-gray-600 bg-gray-700 text-white focus:outline-none focus:border-blue-500">
+            <!-- Button now uses custom styles defined above -->
+            <button id="search-button" class="ml-2 px-3 py-1 rounded font-semibold">Visualize</button>
+            <span id="search-loading">Processing...</span>
+            <div id="search-message" class="text-xs text-red-400 mt-1 h-4"></div> <!-- Error message area -->
+        </div>
+        <!-- Added default message container -->
+        <div id="default-message">Donald Trump was chosen for illustration purposes only lmao</div>
     </div>
 
-    <!-- Main JavaScript Logic -->
-    <script>
-        // SETUP
 
+    <svg id="graph-viz" class="w-full h-full"></svg>
+    <div id="tooltip"></div>
+    <div id="loading" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-2xl">
+        Loading full_graph.json (this may take a moment)...
+    </div>
+
+    <script>
+        // --- Globals ---
         const svg = d3.select("#graph-viz");
         const loadingText = d3.select("#loading");
         const width = +svg.node().getBoundingClientRect().width;
         const height = +svg.node().getBoundingClientRect().height;
         const tooltip = d3.select("#tooltip");
+        const searchLoading = d3.select("#search-loading");
+        const searchMessage = d3.select('#search-message');
+        const defaultMessage = d3.select('#default-message'); // Select the default message div
 
-        // Define node colors
-        const nodeColors = {
-            "root": "#d8ff4d",          
-            "mutual_neighbor": "#2F5249" 
-        };
+        const nodeColors = { "root": "#d8ff4d", "mutual_neighbor": "#2F5249" };
 
-        // LOAD THE DATA
+        let fullGraphData = null; // To store the entire graph {nodes: [], links: []}
+        let fullNodesMap = new Map(); // For quick node lookup by id
+        let fullAdj = new Map(); // Adjacency list: Map(id -> Set(neighbor_id))
+        let fullRevAdj = new Map(); // Reverse Adjacency: Map(id -> Set(node_linking_to_it))
 
-        d3.json("graph-viz.json").then(graph => {
+        let simulationInstance = null;
+        let nodeGroupSelection = null;
+        let nodeSelection = null;
+        let labelSelection = null;
+        let linkSelection = null;
+        let zoomBehavior = null; // Store zoom behavior
 
+        let defaultMessageVisible = true; // Flag to track if the default message should be shown
+
+        // --- Drag Functions ---
+        function drag(simulation) {
+             function dragstarted(event, d) {
+                if (!event.active) simulation.alphaTarget(0.3).restart();
+                d.fx = d.x; d.fy = d.y;
+            }
+            function dragged(event, d) { d.fx = event.x; d.fy = event.y; }
+            function dragended(event, d) {
+                if (!event.active) simulation.alphaTarget(0);
+                d.fx = null; d.fy = null;
+            }
+            return d3.drag().on("start", dragstarted).on("drag", dragged).on("end", dragended);
+        }
+
+        // --- Load Full Data ---
+        d3.json("full_graph.json").then(graph => {
+            console.log("Full graph data loaded.");
             loadingText.style("display", "none");
+            fullGraphData = graph;
 
-            // THE PHYSICS SIMULATION
+            // Pre-process for faster lookups
+            fullGraphData.nodes.forEach(n => fullNodesMap.set(n.id, n));
+            fullGraphData.links.forEach(l => {
+                const sourceId = typeof l.source === 'object' && l.source !== null ? l.source.id : l.source;
+                const targetId = typeof l.target === 'object' && l.target !== null ? l.target.id : l.target;
 
-            const simulation = d3.forceSimulation(graph.nodes)
-                .force("link", d3.forceLink(graph.links).id(d => d.id).distance(60)) // Adjusted distance
-                .force("charge", d3.forceManyBody().strength(-150)) // Adjusted strength
-                .force("center", d3.forceCenter(width / 2, height / 2))
-                .on("tick", ticked);
-
-            // DRAW THE SVG ELEMENTS 
-
-            const g = svg.append("g");
-
-            const link = g.append("g")
-                .attr("class", "links")
-                .selectAll("line")
-                .data(graph.links)
-                .enter().append("line")
-                .attr("stroke-width", 1);
-
-            // Create groups for nodes AND labels together
-            const nodeGroup = g.append("g")
-                .attr("class", "nodes-and-labels") // Keep this class for the main group
-                .selectAll("g") // Select groups instead of circles directly
-                .data(graph.nodes)
-                .enter().append("g"); // Create a <g> for each node+label
-
-            // Draw the nodes (circles) inside the group
-            const node = nodeGroup.append("circle")
-                .attr("class", "node-circle") // Added class for easier selection later if needed
-                .attr("r", d => d.group === 'root' ? 10 : 5) // Adjusted size
-                .attr("fill", d => nodeColors[d.group] || "#ccc") // Use updated colors
-                .call(drag(simulation));
-
-            // Draw the labels (text) inside the group
-            const label = nodeGroup.append("text")
-                .text(d => d.id) // Display the person's name
-                .attr('x', 0)     // Center text horizontally initially
-                .attr('y', d => (d.group === 'root' ? 10 : 5) + 12); // Position below the circle (radius + padding)
-
-            // INTERACTIVITY
-
-            // Tooltips (still useful for potentially long names)
-            node.on("mouseover", (event, d) => {
-                tooltip.style("opacity", 1)
-                       .html(d.id);
-                d3.select(event.currentTarget)
-                  .transition().duration(100)
-                  .attr("r", d => d.group === 'root' ? 15 : 10); // Enlarge on hover
-            })
-            .on("mousemove", (event) => {
-                tooltip.style("left", (event.pageX + 10) + "px")
-                       .style("top", (event.pageY - 28) + "px");
-            })
-            .on("mouseout", (event, d) => {
-                tooltip.style("opacity", 0);
-                d3.select(event.currentTarget)
-                  .transition().duration(100)
-                  .attr("r", d => d.group === 'root' ? 10 : 5); // Reset size
-            });
-
-            // --- ADDED FEATURE: Double-click to open Wikipedia page ---
-            node.on("dblclick", (event, d) => {
-                // Check if the URL exists in the data
-                if (d.url) {
-                    window.open(d.url, '_blank'); // Open the URL from the JSON data
-                } else {
-                    console.warn("Node clicked, but no URL found in data:", d);
+                if (sourceId && targetId) {
+                    if (!fullAdj.has(sourceId)) fullAdj.set(sourceId, new Set());
+                    if (!fullRevAdj.has(targetId)) fullRevAdj.set(targetId, new Set());
+                    fullAdj.get(sourceId).add(targetId);
+                    fullRevAdj.get(targetId).add(sourceId);
                 }
             });
-            // --------------------------------------------------------
+            console.log("Pre-processing complete.");
 
-            // Zooming
-            svg.call(d3.zoom()
+            setupSimulation();
+            setupZoom();
+            // Changed the default person here to Donald Trump
+            updateGraph("Donald Trump"); // Load default graph
+
+        }).catch(error => {
+            console.error("Error loading full graph data:", error);
+            loadingText.text("Error: Could not load full_graph.json. Did you run create_full_json.py?");
+        });
+
+        // --- Simulation Setup ---
+        function setupSimulation() {
+            simulationInstance = d3.forceSimulation()
+                .force("link", d3.forceLink().id(d => d.id).distance(60))
+                .force("charge", d3.forceManyBody().strength(-150))
+                .force("center", d3.forceCenter(width / 2, height / 2))
+                .on("tick", ticked);
+        }
+
+        // --- Zoom Setup ---
+         function setupZoom() {
+            zoomBehavior = d3.zoom()
                 .extent([[0, 0], [width, height]])
                 .scaleExtent([0.1, 8])
                 .on("zoom", ({ transform }) => {
-                    g.attr("transform", transform);
-                }));
+                    const mainGroup = svg.select("g");
+                    if (mainGroup.node()) {
+                        mainGroup.attr("transform", transform);
+                    }
+                });
+            svg.call(zoomBehavior);
+        }
 
-            // THE "TICK" (ANIMATION) FUNCTION
+        // --- Graph Update Function ---
+        function updateGraph(rootPersonName) {
+            searchLoading.style('display', 'inline');
+            searchMessage.text('');
 
-            function ticked() {
-                link
-                    .attr("x1", d => d.source.x)
-                    .attr("y1", d => d.source.y)
-                    .attr("x2", d => d.target.x)
-                    .attr("y2", d => d.target.y);
-
-                nodeGroup // Move the <g> element containing circle and text
-                    .attr("transform", d => `translate(${d.x},${d.y})`);
-                // ----------------------------------------------------------
+            // --- Hide default message logic ---
+            // If the message is currently visible AND the searched name is NOT the default
+            if (defaultMessageVisible && rootPersonName !== "Donald Trump") {
+                 defaultMessage.style('display', 'none'); // Hide the message
+                 defaultMessageVisible = false; // Set flag so it doesn't reappear
             }
-
-            // DRAG FUNCTIONS
-
-            function drag(simulation) {
-                function dragstarted(event, d) {
-                    if (!event.active) simulation.alphaTarget(0.3).restart();
-                    d.fx = d.x;
-                    d.fy = d.y;
-                }
-                function dragged(event, d) {
-                    d.fx = event.x;
-                    d.fy = event.y;
-                }
-                function dragended(event, d) {
-                    if (!event.active) simulation.alphaTarget(0);
-                    d.fx = null;
-                    d.fy = null;
-                }
-                return d3.drag()
-                    .on("start", dragstarted)
-                    .on("drag", dragged)
-                    .on("end", dragended);
+            // If the searched name IS the default, make sure the message shows (if flag allows)
+            else if (rootPersonName === "Donald Trump" && defaultMessageVisible) {
+                defaultMessage.style('display', 'block');
             }
+            // If the flag is false, keep it hidden regardless
+            else if (!defaultMessageVisible) {
+                 defaultMessage.style('display', 'none');
+            }
+            // ------------------------------------
 
-        }).catch(error => {
-            console.error("Error loading graph data:", error);
-            loadingText.text("Error: Could not load graph-viz.json. Did you run prepare_viz_data.py?");
+            setTimeout(() => {
+                if (!fullGraphData) {
+                    searchMessage.text('Full graph data not loaded yet.');
+                    searchLoading.style('display', 'none');
+                    return;
+                }
+                if (!fullNodesMap.has(rootPersonName)) {
+                    searchMessage.text(`Person '${rootPersonName}' not found in data.`);
+                    searchLoading.style('display', 'none');
+                    return;
+                }
+
+                console.log(`Updating graph for root: ${rootPersonName}`);
+
+                // 1. Find Mutual Neighbors
+                const outNeighbors = fullAdj.get(rootPersonName) || new Set();
+                const inNeighbors = fullRevAdj.get(rootPersonName) || new Set();
+                const mutualNeighbors = new Set([...outNeighbors].filter(id => inNeighbors.has(id)));
+
+                // 2. Build Subgraph Nodes
+                const subgraphNodeIds = new Set([rootPersonName, ...mutualNeighbors]);
+                const subgraphNodes = Array.from(subgraphNodeIds).map(id => {
+                    const originalNode = fullNodesMap.get(id);
+                    return {
+                        id: id,
+                        url: originalNode?.url,
+                        group: id === rootPersonName ? "root" : "mutual_neighbor",
+                    };
+                });
+                const subgraphNodesMap = new Map(subgraphNodes.map(n => [n.id, n]));
+
+                // 3. Build Subgraph Links
+                const subgraphLinks = [];
+                mutualNeighbors.forEach(neighborId => {
+                    const rootNodeSim = subgraphNodesMap.get(rootPersonName);
+                    const neighborNodeSim = subgraphNodesMap.get(neighborId);
+                    if (rootNodeSim && neighborNodeSim) {
+                        subgraphLinks.push({ source: rootNodeSim, target: neighborNodeSim });
+                        subgraphLinks.push({ source: neighborNodeSim, target: rootNodeSim });
+                    }
+                });
+                const mutualNeighborsArray = Array.from(mutualNeighbors);
+                for (let i = 0; i < mutualNeighborsArray.length; i++) {
+                    for (let j = i + 1; j < mutualNeighborsArray.length; j++) {
+                        const personA_id = mutualNeighborsArray[i];
+                        const personB_id = mutualNeighborsArray[j];
+                        const personA_nodeSim = subgraphNodesMap.get(personA_id);
+                        const personB_nodeSim = subgraphNodesMap.get(personB_id);
+                        if(personA_nodeSim && personB_nodeSim) {
+                            if (fullAdj.get(personA_id)?.has(personB_id)) {
+                                subgraphLinks.push({ source: personA_nodeSim, target: personB_nodeSim });
+                            }
+                            if (fullAdj.get(personB_id)?.has(personA_id)) {
+                                subgraphLinks.push({ source: personB_nodeSim, target: personA_nodeSim });
+                            }
+                        }
+                    }
+                }
+                console.log(`Subgraph created: ${subgraphNodes.length} nodes, ${subgraphLinks.length} links.`);
+
+                // Update D3 Elements
+                svg.selectAll("g").remove();
+                const g = svg.append("g");
+                 if (zoomBehavior) { svg.call(zoomBehavior); }
+
+                linkSelection = g.append("g")
+                    .attr("class", "links")
+                    .selectAll("line")
+                    .data(subgraphLinks)
+                    .join("line")
+                    .attr("stroke-width", 1);
+
+                nodeGroupSelection = g.append("g")
+                    .attr("class", "nodes-and-labels")
+                    .selectAll("g")
+                    .data(subgraphNodes, d => d.id)
+                    .join("g");
+
+                nodeSelection = nodeGroupSelection.append("circle")
+                    .attr("class", "node-circle")
+                    .attr("r", d => d.group === 'root' ? 10 : 5)
+                    .attr("fill", d => nodeColors[d.group] || "#ccc")
+                    .call(drag(simulationInstance))
+                     .on("mouseover", handleMouseOver)
+                    .on("mousemove", handleMouseMove)
+                    .on("mouseout", handleMouseOut)
+                    .on("dblclick", handleDoubleClick);
+
+                labelSelection = nodeGroupSelection.append("text")
+                    .text(d => d.id)
+                    .attr('x', 0)
+                    .attr('y', d => (d.group === 'root' ? 10 : 5) + 12);
+
+                // Update Simulation
+                simulationInstance.nodes(subgraphNodes);
+                simulationInstance.force("link").links(subgraphLinks);
+                simulationInstance.alpha(1).restart();
+
+                searchLoading.style('display', 'none');
+                console.log("Graph update complete.");
+
+            }, 50);
+        }
+
+        // --- Animation Tick Function ---
+        function ticked() {
+             if (linkSelection && linkSelection.nodes().length > 0) {
+                 linkSelection
+                    .attr("x1", d => d.source?.x)
+                    .attr("y1", d => d.source?.y)
+                    .attr("x2", d => d.target?.x)
+                    .attr("y2", d => d.target?.y);
+            }
+           if (nodeGroupSelection && nodeGroupSelection.nodes().length > 0) {
+                 nodeGroupSelection
+                    .attr("transform", d => `translate(${d.x || 0},${d.y || 0})`);
+            }
+        }
+
+        // --- Event Handlers ---
+        function handleMouseOver(event, d) {
+             tooltip.style("opacity", 1).html(d.id);
+             d3.select(this).transition().duration(100).attr("r", d.group === 'root' ? 15 : 10);
+        }
+        function handleMouseMove(event) {
+            tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px");
+        }
+        function handleMouseOut(event, d) {
+            tooltip.style("opacity", 0);
+             d3.select(this).transition().duration(100).attr("r", d.group === 'root' ? 10 : 5);
+        }
+        function handleDoubleClick(event, d) {
+            if (d.url) window.open(d.url, '_blank');
+            else console.warn("Node clicked, but no URL found in data:", d);
+        }
+
+        // --- Search Event Listeners ---
+        const searchInput = document.getElementById('search-input');
+        const searchButton = document.getElementById('search-button');
+
+        searchButton.addEventListener('click', () => {
+             const searchTerm = searchInput.value.trim();
+             if (searchTerm) updateGraph(searchTerm);
         });
+        searchInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                 const searchTerm = searchInput.value.trim();
+                 if (searchTerm) updateGraph(searchTerm);
+            }
+        });
+
     </script>
 </body>
 </html>
