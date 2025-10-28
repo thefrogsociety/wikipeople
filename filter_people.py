@@ -3,7 +3,7 @@ import pandas as pd
 import time
 import os
 
-print("--- Starting filter_people.py script (v14 - Typo Fix) ---")
+print("--- Starting filter_people.py script ---")
 
 EDGE_FILE = 'edge-list.csv'
 PEOPLE_LIST_FILE = 'people-list.txt'
@@ -11,14 +11,11 @@ FINAL_GRAPH_FILE = 'people-graph.csv'
 
 def build_master_people_list():
     """
-    Runs ONE master query to get all people from Simple English Wiki.
-    This will take 10-20 minutes, but only needs to run once.
+    This will take 10-20 minutes.
     """
     people = set()
     endpoint_url = "https://query.wikidata.org/sparql"
     
-    # --- THIS IS THE SIMPLIFIED V13 QUERY ---
-    # It removes the language filter, which was the bug.
     query = """
     SELECT ?articleTitle WHERE {
       # ?item is a 'human'
@@ -28,8 +25,6 @@ def build_master_people_list():
       ?sitelink schema:about ?item ;
                 schema:isPartOf <https://simple.wikipedia.org/> ;
                 schema:name ?articleTitle . 
-      
-      # We no longer filter by lang, as this was the bug.
     }
     """
     
@@ -44,7 +39,7 @@ def build_master_people_list():
         data = { 'query': query }
         
         r = requests.post(endpoint_url, data=data, headers=headers)
-        r.raise_for_status() # Raise an error on bad status
+        r.raise_for_status() 
         data = r.json()
         
         results = data.get('results', {}).get('bindings', [])
@@ -67,27 +62,22 @@ def build_master_people_list():
 
 people_set = set()
 
-# 1. Check if we already have a list of people saved
 if os.path.exists(PEOPLE_LIST_FILE):
     print("Found existing people list. Loading...")
     with open(PEOPLE_LIST_FILE, 'r', encoding='utf-8') as f:
         people_set = set(f.read().splitlines())
 else:
-    # 2. If not, we must generate it
     print("No people-list.txt found. Building it from Wikidata...")
     
     people_list = build_master_people_list()
     
     if people_list:
         people_set = set(people_list)
-        # 3. Save our list of people so we don't have to do this again
         print(f"Saving {len(people_set)} people to {PEOPLE_LIST_FILE}...")
         with open(PEOPLE_LIST_FILE, 'w', encoding='utf-8') as f:
             for person in people_set:
                 f.write(f"{person}\n")
     
-    # --- THIS IS THE FIX ---
-    # The period after 'else:' has been removed.
     else:
         print("Could not build people list. Exiting.")
         exit()
@@ -98,7 +88,6 @@ if not people_set:
 
 print(f"Loaded {len(people_set)} people.")
 
-# 4. Filter the original edge list
 print(f"Loading {EDGE_FILE} again to filter...")
 df_edges = pd.read_csv(EDGE_FILE, encoding='utf-8')
 
@@ -108,7 +97,6 @@ df_people_edges = df_edges[
     df_edges['target'].isin(people_set)
 ]
 
-# 5. Save the final graph
 print(f"Saving final graph with {len(df_people_edges)} links to {FINAL_GRAPH_FILE}...")
 df_people_edges.to_csv(FINAL_GRAPH_FILE, index=False, encoding='utf-8')
 print(f"All done! Final graph saved to {FINAL_GRAPH_FILE}.")
