@@ -6,61 +6,234 @@
     <title>WikiPeople Graph</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://d3js.org/d3.v7.min.js"></script>
+
+    <!-- Import Pixel Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
     <style>
-        body { font-family: "Inter", sans-serif; overflow: hidden; background-color: #201515; }
-        .links line { stroke: #999; stroke-opacity: 0.6; }
+        /* Apply Pixel Font */
+        body {
+            font-family: 'Press Start 2P', cursive;
+            overflow: hidden;
+            background-color: #201515;
+            color: #ccc; /* Default text color */
+        }
+        /* Graph Styles */
+        /* Default solid line style (now matches root node color) */
+        .links line {
+             stroke: #d8ff4d; /* Central node color */
+             stroke-opacity: 0.7; /* Slightly more visible */
+        }
+        /* Style for one-way links (dotted and dimmer) */
+        .links line.oneway {
+            stroke: #999; /* Keep one-way links gray */
+            stroke-dasharray: 4,4; /* Dotted line effect */
+            stroke-opacity: 0.4; /* Lower opacity */
+        }
         .node-circle { stroke: #fff; stroke-width: 1.5px; cursor: pointer; }
         .node-circle.highlighted { stroke: #ffcc00; stroke-width: 3px; }
-        .nodes-and-labels g text { fill: #ccc; font-size: 10px; pointer-events: none; text-anchor: middle; }
-        #tooltip { position: absolute; opacity: 0; background-color: #333; color: white; padding: 8px 12px; border-radius: 6px; pointer-events: none; transition: opacity 0.2s; font-size: 0.875rem; }
-        #search-controls { /* Renamed container for clarity */
+        .nodes-and-labels g text {
+            fill: #ccc;
+            font-size: 10px;
+            pointer-events: none;
+            text-anchor: middle;
+            font-family: 'Press Start 2P', cursive;
+        }
+        /* Tooltip */
+        #tooltip {
+            position: absolute; opacity: 0; background-color: #333; color: white;
+            padding: 8px 12px; border-radius: 6px; pointer-events: none;
+            transition: opacity 0.2s; font-size: 0.875rem; font-family: sans-serif; /* Keep tooltip readable */
+        }
+        /* Search Area */
+        #search-container { position: absolute; top: 10px; left: 10px; z-index: 10; }
+        #search-button {
+            background-color: #d8ff4d; color: #1a1a1a; transition: background-color 0.2s;
+            font-family: 'Press Start 2P', cursive; padding-top: 6px; padding-bottom: 6px;
+            font-size: 14px;
+        }
+        #search-button:hover { background-color: #b8cc3d; }
+        #search-input {
+             font-family: 'Press Start 2P', cursive; font-size: 14px;
+             width: 250px; /* Give input more width */
+        }
+        #search-loading { display: none; margin-left: 10px; font-style: normal; color: #aaa; font-size: 10px;}
+        #search-message, #initial-message { /* Combined message styles */
+             font-family: 'Press Start 2P', cursive; font-size: 8px;
+             margin-top: 4px; /* Add some space */
+             height: 1.2em; /* Ensure space even when empty */
+         }
+        /* Stats Display Area */
+        #stats-container {
             position: absolute;
             top: 10px;
-            left: 10px;
+            right: 10px;
+            background-color: rgba(40, 40, 40, 0.8);
+            padding: 10px;
+            border-radius: 8px;
             z-index: 10;
+            font-size: 10px; /* Base size for stats */
+            line-height: 1.4;
+            min-width: 200px; /* Ensure some width */
+            color: #eee;
+            font-family: 'Press Start 2P', cursive; /* Apply pixel font */
         }
-        /* Style for the Visualize button */
-        #search-button {
-            background-color: #d8ff4d; /* Root node color */
-            color: #1a1a1a; /* Dark text for light button */
-            transition: background-color 0.2s; /* Add smooth hover effect */
+        #stats-container h3 {
+             font-size: 12px;
+             margin-bottom: 5px;
+             color: #d8ff4d; /* Match root node color */
+             border-bottom: 1px solid #555;
+             padding-bottom: 3px;
         }
-        #search-button:hover {
-            background-color: #b8cc3d; /* Slightly darker shade for hover */
+        /* Leaderboard Area */
+        #leaderboard-container {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background-color: rgba(40, 40, 40, 0.8);
+            padding: 10px;
+            border-radius: 8px;
+            z-index: 10;
+            font-size: 10px; /* Base size for leaderboard */
+            line-height: 1.4;
+            max-height: 30vh; /* Limit height */
+            overflow-y: auto; /* Add scroll if needed */
+            color: #eee;
+            font-family: 'Press Start 2P', cursive; /* Apply pixel font */
         }
-        /* Style for the default message */
-        #default-message {
-            color: #aaa;
-            font-size: 0.75rem; /* Smaller text */
-            margin-top: 4px;
-            font-style: italic;
+        #leaderboard-container h3 {
+             font-size: 12px;
+             margin-bottom: 5px;
+             color: #61dafb; /* Different color for leaderboard */
+             border-bottom: 1px solid #555;
+             padding-bottom: 3px;
         }
+         #leaderboard-container ol {
+             list-style-position: inside;
+             padding-left: 0;
+         }
+         #leaderboard-container li {
+             margin-bottom: 2px;
+         }
+         #leaderboard-container li span {
+            color: #aaa; /* Lighter color for count */
+            margin-left: 5px;
+         }
 
-        /* Add style for loading indicator during search */
-        #search-loading { display: none; margin-left: 10px; font-style: italic; color: #aaa; }
+         /* Loading Text */
+         #loading {
+             font-family: 'Press Start 2P', cursive;
+         }
+
+         /* Footer Attribution */
+         #footer-attribution {
+             position: absolute;
+             bottom: calc(30vh + 25px); /* Position above leaderboard (adjust 25px gap as needed) */
+             left: 10px;
+             font-size: 8px; /* Small text */
+             color: #777; /* Dim color */
+             z-index: 5; /* Below other UI elements like leaderboard */
+             font-family: 'Press Start 2P', cursive; /* Apply pixel font */
+         }
+
+         /* Explanation Area */
+         #explanation-container {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background-color: rgba(40, 40, 40, 0.8);
+            padding: 10px;
+            border-radius: 8px;
+            z-index: 10;
+            font-size: 10px; /* Base size for explanation */
+            line-height: 1.4;
+            max-width: 250px; /* Limit width */
+            color: #eee;
+            font-family: 'Press Start 2P', cursive; /* Apply pixel font */
+         }
+         #explanation-toggle {
+            font-size: 12px;
+            margin-bottom: 5px;
+            color: #aaa;
+            cursor: pointer;
+            border-bottom: 1px solid #555;
+            padding-bottom: 3px;
+            user-select: none; /* Prevent text selection on click */
+         }
+         #explanation-toggle::after {
+             content: ' [+]'; /* Indicator for collapsed state */
+             font-size: 10px;
+         }
+         #explanation-container.expanded #explanation-toggle::after {
+              content: ' [-]'; /* Indicator for expanded state */
+         }
+         #explanation-content {
+             display: none; /* Hidden by default */
+             margin-top: 5px;
+         }
+
+
     </style>
 </head>
 <body class="h-full text-gray-100">
 
-    <div id="search-controls">
-        <div id="search-container">
-            <!-- Input field remains styled with Tailwind -->
-            <input type="text" id="search-input" placeholder="Enter root person..." class="px-2 py-1 rounded border border-gray-600 bg-gray-700 text-white focus:outline-none focus:border-blue-500">
-            <!-- Button now uses custom styles defined above -->
-            <button id="search-button" class="ml-2 px-3 py-1 rounded font-semibold">Visualize</button>
-            <span id="search-loading">Processing...</span>
-            <div id="search-message" class="text-xs text-red-400 mt-1 h-4"></div> <!-- Error message area -->
+    <!-- Search UI -->
+    <div id="search-container">
+        <input type="text" id="search-input" placeholder="Enter root person..." class="px-2 py-1 rounded border border-gray-600 bg-gray-700 text-white focus:outline-none focus:border-blue-500">
+        <button id="search-button" class="ml-2 px-3 py-1 rounded font-semibold">Visualize</button>
+        <span id="search-loading">Processing...</span>
+        <div id="initial-message" class="text-xs text-red-400 mt-1 h-4">
+            <!-- Initial message will be added/removed by JS -->
         </div>
-        <!-- Added default message container -->
-        <div id="default-message">Donald Trump was chosen for illustration purposes only lmao</div>
+        <div id="search-message" class="text-xs text-lime-400 mt-1 h-4"></div> <!-- Changed color for frog message -->
+    </div>
+
+    <!-- Stats Display -->
+    <div id="stats-container">
+        <h3>Stats for Searched Person</h3>
+        <div id="stats-content">Select a person...</div>
+    </div>
+
+    <!-- Footer Attribution Line (Moved Position) -->
+    <div id="footer-attribution">
+        a product made by the frog society
+    </div>
+
+     <!-- Leaderboard Display -->
+    <div id="leaderboard-container">
+        <h3>Most Mentioned Leaderboard</h3>
+        <ol id="leaderboard-list"><li>Loading...</li></ol>
     </div>
 
 
     <svg id="graph-viz" class="w-full h-full"></svg>
     <div id="tooltip"></div>
-    <div id="loading" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-2xl">
-        Loading full_graph.json (this may take a moment)...
+    <div id="loading" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-xl md:text-2xl">
+        Loading full_graph.json...
     </div>
+
+    <!-- Explanation Box -->
+    <div id="explanation-container">
+        <h3 id="explanation-toggle">Graph Logic</h3>
+        <!-- Updated Explanation Text -->
+        <div id="explanation-content">
+            Shows searched person (root) & everyone they link to OR who links to them.
+            <br><br>
+            - <span style="color:#d8ff4d"><b>Solid Lines:</b></span> Mutual link (A ↔ B).
+            <br>
+            - <span style="color:#999"><b>Dotted Lines:</b></span> One-way link (A → B, but B <span style="text-decoration: line-through;">↔</span> A in subgraph).
+            <br><br>
+            Node colors show relationship to current root:
+            <br>
+            <span style="color:#d8ff4d">Root</span>,
+            <span style="color:#ff7f0e">Mutual</span>, <!-- Changed color name -->
+            <span style="color:#2ca02c">Links To Root</span>, <!-- Changed color name -->
+            <span style="color:#1f77b4">Linked By Root</span>. <!-- Changed color name -->
+        </div>
+    </div>
+
 
     <script>
         // --- Globals ---
@@ -71,74 +244,110 @@
         const tooltip = d3.select("#tooltip");
         const searchLoading = d3.select("#search-loading");
         const searchMessage = d3.select('#search-message');
-        const defaultMessage = d3.select('#default-message'); // Select the default message div
+        const initialMessageDiv = d3.select('#initial-message');
+        const statsContentDiv = d3.select('#stats-content');
+        const leaderboardListOl = d3.select('#leaderboard-list');
+        const explanationContainer = d3.select('#explanation-container');
+        const explanationToggle = d3.select('#explanation-toggle');
+        const explanationContent = d3.select('#explanation-content');
 
-        const nodeColors = { "root": "#d8ff4d", "mutual_neighbor": "#2F5249" };
+        // --- UPDATED NODE COLORS ---
+        const nodeColors = {
+            "root": "#d8ff4d",           // Current searched person (Lime Green)
+            "mutual_neighbor": "#ff7f0e", // Links both ways with root (Orange)
+            "in_neighbor": "#2ca02c",    // Links TO root only (Dark Green)
+            "out_neighbor": "#1f77b4"     // Linked FROM root only (Blue)
+         };
+        // --- END UPDATED NODE COLORS ---
 
-        let fullGraphData = null; // To store the entire graph {nodes: [], links: []}
-        let fullNodesMap = new Map(); // For quick node lookup by id
-        let fullAdj = new Map(); // Adjacency list: Map(id -> Set(neighbor_id))
-        let fullRevAdj = new Map(); // Reverse Adjacency: Map(id -> Set(node_linking_to_it))
+        const defaultRoot = "Michael Stevens"; // Default root
+        const LEADERBOARD_SIZE = 10;
+
+        let fullGraphData = null;
+        let fullNodesMap = new Map();
+        let fullAdj = new Map();
+        let fullRevAdj = new Map();
+        let inDegrees = new Map();
+        let outDegrees = new Map();
+        let rankedNodes = [];
 
         let simulationInstance = null;
         let nodeGroupSelection = null;
         let nodeSelection = null;
         let labelSelection = null;
         let linkSelection = null;
-        let zoomBehavior = null; // Store zoom behavior
+        let zoomBehavior = null;
+        let initialMessageVisible = true;
 
-        let defaultMessageVisible = true; // Flag to track if the default message should be shown
 
         // --- Drag Functions ---
         function drag(simulation) {
-             function dragstarted(event, d) {
-                if (!event.active) simulation.alphaTarget(0.3).restart();
-                d.fx = d.x; d.fy = d.y;
-            }
+             function dragstarted(event, d) { if (!event.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; }
             function dragged(event, d) { d.fx = event.x; d.fy = event.y; }
-            function dragended(event, d) {
-                if (!event.active) simulation.alphaTarget(0);
-                d.fx = null; d.fy = null;
-            }
+            function dragended(event, d) { if (!event.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; }
             return d3.drag().on("start", dragstarted).on("drag", dragged).on("end", dragended);
         }
 
-        // --- Load Full Data ---
+        // --- Load Full Data & Pre-process ---
         d3.json("full_graph.json").then(graph => {
             console.log("Full graph data loaded.");
             loadingText.style("display", "none");
             fullGraphData = graph;
 
-            // Pre-process for faster lookups
-            fullGraphData.nodes.forEach(n => fullNodesMap.set(n.id, n));
+            console.log("Pre-processing graph data...");
+            fullGraphData.nodes.forEach(n => {
+                fullNodesMap.set(n.id, n);
+                inDegrees.set(n.id, 0); outDegrees.set(n.id, 0);
+            });
             fullGraphData.links.forEach(l => {
                 const sourceId = typeof l.source === 'object' && l.source !== null ? l.source.id : l.source;
                 const targetId = typeof l.target === 'object' && l.target !== null ? l.target.id : l.target;
-
-                if (sourceId && targetId) {
+                if (sourceId && targetId && fullNodesMap.has(sourceId) && fullNodesMap.has(targetId)) {
                     if (!fullAdj.has(sourceId)) fullAdj.set(sourceId, new Set());
                     if (!fullRevAdj.has(targetId)) fullRevAdj.set(targetId, new Set());
                     fullAdj.get(sourceId).add(targetId);
                     fullRevAdj.get(targetId).add(sourceId);
+                    outDegrees.set(sourceId, (outDegrees.get(sourceId) || 0) + 1);
+                    inDegrees.set(targetId, (inDegrees.get(targetId) || 0) + 1);
                 }
             });
+            rankedNodes = Array.from(inDegrees.entries())
+                .map(([id, degree]) => ({ id, inDegree: degree }))
+                .sort((a, b) => b.inDegree - a.inDegree);
+            displayLeaderboard();
             console.log("Pre-processing complete.");
 
             setupSimulation();
             setupZoom();
-            // Changed the default person here to Donald Trump
-            updateGraph("Donald Trump"); // Load default graph
+            updateGraph(defaultRoot);
+            initialMessageVisible = true;
 
-        }).catch(error => {
+            // Add Explanation Toggle Listener
+            explanationToggle.on('click', () => {
+                const isExpanded = explanationContent.style('display') === 'block';
+                explanationContent.style('display', isExpanded ? 'none' : 'block');
+                explanationContainer.classed('expanded', !isExpanded);
+            });
+
+        }).catch(error => { /* Error Handling */
             console.error("Error loading full graph data:", error);
-            loadingText.text("Error: Could not load full_graph.json. Did you run create_full_json.py?");
-        });
+            loadingText.text("Error: Could not load full_graph.json.");
+         });
+
+        // --- Display Leaderboard ---
+        function displayLeaderboard() {
+            leaderboardListOl.html('');
+            const topN = rankedNodes.slice(0, LEADERBOARD_SIZE);
+            topN.forEach((node, index) => {
+                leaderboardListOl.append('li').text(`${index + 1}. ${node.id}`).append('span').text(`(${node.inDegree})`);
+            });
+        }
 
         // --- Simulation Setup ---
         function setupSimulation() {
             simulationInstance = d3.forceSimulation()
-                .force("link", d3.forceLink().id(d => d.id).distance(60))
-                .force("charge", d3.forceManyBody().strength(-150))
+                .force("link", d3.forceLink().id(d => d.id).distance(100))
+                .force("charge", d3.forceManyBody().strength(-250))
                 .force("center", d3.forceCenter(width / 2, height / 2))
                 .on("tick", ticked);
         }
@@ -150,184 +359,139 @@
                 .scaleExtent([0.1, 8])
                 .on("zoom", ({ transform }) => {
                     const mainGroup = svg.select("g");
-                    if (mainGroup.node()) {
-                        mainGroup.attr("transform", transform);
-                    }
+                    if (mainGroup.node()) mainGroup.attr("transform", transform);
                 });
             svg.call(zoomBehavior);
         }
 
         // --- Graph Update Function ---
         function updateGraph(rootPersonName) {
-            searchLoading.style('display', 'inline');
-            searchMessage.text('');
+            // Handle messages
+             if (!initialMessageVisible) { initialMessageDiv.text(""); }
+             initialMessageVisible = false; // Set flag after first potential update
 
-            // --- Hide default message logic ---
-            // If the message is currently visible AND the searched name is NOT the default
-            if (defaultMessageVisible && rootPersonName !== "Donald Trump") {
-                 defaultMessage.style('display', 'none'); // Hide the message
-                 defaultMessageVisible = false; // Set flag so it doesn't reappear
-            }
-            // If the searched name IS the default, make sure the message shows (if flag allows)
-            else if (rootPersonName === "Donald Trump" && defaultMessageVisible) {
-                defaultMessage.style('display', 'block');
-            }
-            // If the flag is false, keep it hidden regardless
-            else if (!defaultMessageVisible) {
-                 defaultMessage.style('display', 'none');
-            }
-            // ------------------------------------
 
-            setTimeout(() => {
-                if (!fullGraphData) {
-                    searchMessage.text('Full graph data not loaded yet.');
-                    searchLoading.style('display', 'none');
-                    return;
+            searchLoading.style('display', 'inline'); searchMessage.text(''); statsContentDiv.html("Loading stats...");
+
+            if (rootPersonName.toLowerCase() === 'the frog society') { /* Frog message */
+                searchMessage.text("he is too shy to be on wikipedia but he wants you to know that he loves you for remembering him <3");
+                searchLoading.style('display', 'none'); svg.selectAll("g").remove(); statsContentDiv.html(''); return;
+            }
+
+            setTimeout(() => { // Allow UI update
+                if (!fullGraphData) { /* Error checks */
+                     searchMessage.text('Graph data not loaded.'); searchLoading.style('display', 'none'); return;
                 }
-                if (!fullNodesMap.has(rootPersonName)) {
-                    searchMessage.text(`Person '${rootPersonName}' not found in data.`);
-                    searchLoading.style('display', 'none');
-                    return;
+                let actualRootName = rootPersonName; let found = false;
+                const lowerCaseName = rootPersonName.toLowerCase();
+                for (const key of fullNodesMap.keys()) {
+                    if (key.toLowerCase() === lowerCaseName) { actualRootName = key; found = true; break; }
                 }
+                if (!found) { searchMessage.text(`'${rootPersonName}' not found.`); searchLoading.style('display', 'none'); return; }
+                rootPersonName = actualRootName; // Use correct case
 
                 console.log(`Updating graph for root: ${rootPersonName}`);
 
-                // 1. Find Mutual Neighbors
-                const outNeighbors = fullAdj.get(rootPersonName) || new Set();
-                const inNeighbors = fullRevAdj.get(rootPersonName) || new Set();
-                const mutualNeighbors = new Set([...outNeighbors].filter(id => inNeighbors.has(id)));
+                // Display Stats
+                const personInDegree = inDegrees.get(rootPersonName) || 0; const personOutDegree = outDegrees.get(rootPersonName) || 0;
+                const personRank = rankedNodes.findIndex(node => node.id === rootPersonName) + 1;
+                statsContentDiv.html(`<b>${rootPersonName}</b><br>Mentioned By: ${personInDegree}<br>Mentions: ${personOutDegree}<br>Rank (by mentions): ${personRank > 0 ? personRank : 'N/A'} / ${rankedNodes.length}`);
 
-                // 2. Build Subgraph Nodes
-                const subgraphNodeIds = new Set([rootPersonName, ...mutualNeighbors]);
+                // Find ALL Neighbors (Union)
+                const outNeighbors = fullAdj.get(rootPersonName) || new Set(); const inNeighbors = fullRevAdj.get(rootPersonName) || new Set();
+                const allNeighborIds = new Set([...outNeighbors, ...inNeighbors]);
+
+                // Build Subgraph Nodes (including root)
+                const subgraphNodeIds = new Set([rootPersonName, ...allNeighborIds]);
                 const subgraphNodes = Array.from(subgraphNodeIds).map(id => {
-                    const originalNode = fullNodesMap.get(id);
-                    return {
-                        id: id,
-                        url: originalNode?.url,
-                        group: id === rootPersonName ? "root" : "mutual_neighbor",
-                    };
+                    const originalNode = fullNodesMap.get(id); let group = "unknown";
+                    if (id === rootPersonName) { group = "root"; }
+                    else { const linksToRoot = inNeighbors.has(id); const linkedFromRoot = outNeighbors.has(id);
+                        if (linksToRoot && linkedFromRoot) group = "mutual_neighbor"; else if (linksToRoot) group = "in_neighbor"; else if (linkedFromRoot) group = "out_neighbor"; }
+                    return { id: id, url: originalNode?.url, group: group };
                 });
                 const subgraphNodesMap = new Map(subgraphNodes.map(n => [n.id, n]));
 
-                // 3. Build Subgraph Links
-                const subgraphLinks = [];
-                mutualNeighbors.forEach(neighborId => {
-                    const rootNodeSim = subgraphNodesMap.get(rootPersonName);
-                    const neighborNodeSim = subgraphNodesMap.get(neighborId);
-                    if (rootNodeSim && neighborNodeSim) {
-                        subgraphLinks.push({ source: rootNodeSim, target: neighborNodeSim });
-                        subgraphLinks.push({ source: neighborNodeSim, target: rootNodeSim });
-                    }
-                });
-                const mutualNeighborsArray = Array.from(mutualNeighbors);
-                for (let i = 0; i < mutualNeighborsArray.length; i++) {
-                    for (let j = i + 1; j < mutualNeighborsArray.length; j++) {
-                        const personA_id = mutualNeighborsArray[i];
-                        const personB_id = mutualNeighborsArray[j];
-                        const personA_nodeSim = subgraphNodesMap.get(personA_id);
-                        const personB_nodeSim = subgraphNodesMap.get(personB_id);
-                        if(personA_nodeSim && personB_nodeSim) {
-                            if (fullAdj.get(personA_id)?.has(personB_id)) {
-                                subgraphLinks.push({ source: personA_nodeSim, target: personB_nodeSim });
-                            }
-                            if (fullAdj.get(personB_id)?.has(personA_id)) {
-                                subgraphLinks.push({ source: personB_nodeSim, target: personA_nodeSim });
-                            }
+                // Build Subgraph Links with Type
+                let subgraphLinks = []; const linkSet = new Set();
+                subgraphNodes.forEach(sourceNode => {
+                    const sourceId = sourceNode.id; const targetsInFullGraph = fullAdj.get(sourceId) || new Set();
+                    targetsInFullGraph.forEach(targetId => {
+                        if (subgraphNodesMap.has(targetId)) {
+                             const targetNode = subgraphNodesMap.get(targetId); linkSet.add(`${sourceId}->${targetId}`);
+                             subgraphLinks.push({ source: sourceNode, target: targetNode, type: 'potential_oneway' });
                         }
+                    });
+                });
+                 subgraphLinks = subgraphLinks.map(link => {
+                    const sourceId = typeof link.source === 'object' ? link.source.id : link.source; const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+                    let finalType = 'oneway';
+                    if (linkSet.has(`${targetId}->${sourceId}`)) {
+                        if (sourceId === rootPersonName || targetId === rootPersonName) finalType = 'mutual_root'; else finalType = 'mutual_neighbor';
+                    } else {
+                         if (sourceId === rootPersonName || targetId === rootPersonName) finalType = 'oneway_root'; else finalType = 'oneway_neighbor';
                     }
-                }
-                console.log(`Subgraph created: ${subgraphNodes.length} nodes, ${subgraphLinks.length} links.`);
+                    return { ...link, type: finalType };
+                 });
 
-                // Update D3 Elements
-                svg.selectAll("g").remove();
-                const g = svg.append("g");
-                 if (zoomBehavior) { svg.call(zoomBehavior); }
+                console.log(`Subgraph: ${subgraphNodes.length} nodes, ${subgraphLinks.length} links.`);
 
-                linkSelection = g.append("g")
-                    .attr("class", "links")
-                    .selectAll("line")
-                    .data(subgraphLinks)
-                    .join("line")
-                    .attr("stroke-width", 1);
+                // UPDATE D3 ELEMENTS
+                svg.selectAll("g").remove(); const g = svg.append("g");
+                if (zoomBehavior) { svg.call(zoomBehavior); svg.call(zoomBehavior.transform, d3.zoomIdentity); }
 
-                nodeGroupSelection = g.append("g")
-                    .attr("class", "nodes-and-labels")
-                    .selectAll("g")
-                    .data(subgraphNodes, d => d.id)
-                    .join("g");
+                linkSelection = g.append("g").attr("class", "links").selectAll("line").data(subgraphLinks).join("line")
+                    .attr("stroke-width", 1)
+                    .attr("class", d => d.type.includes('oneway') ? "oneway" : null); // Apply .oneway class for styling
 
-                nodeSelection = nodeGroupSelection.append("circle")
-                    .attr("class", "node-circle")
+                nodeGroupSelection = g.append("g").attr("class", "nodes-and-labels").selectAll("g").data(subgraphNodes, d => d.id).join("g");
+
+                nodeSelection = nodeGroupSelection.append("circle").attr("class", "node-circle")
+                    .attr("fill", d => nodeColors[d.group] || "#ccc") // Use updated colors, default gray
                     .attr("r", d => d.group === 'root' ? 10 : 5)
-                    .attr("fill", d => nodeColors[d.group] || "#ccc")
                     .call(drag(simulationInstance))
-                     .on("mouseover", handleMouseOver)
-                    .on("mousemove", handleMouseMove)
-                    .on("mouseout", handleMouseOut)
-                    .on("dblclick", handleDoubleClick);
+                    .on("mouseover", handleMouseOver).on("mousemove", handleMouseMove).on("mouseout", handleMouseOut).on("dblclick", handleDoubleClick);
 
-                labelSelection = nodeGroupSelection.append("text")
-                    .text(d => d.id)
-                    .attr('x', 0)
-                    .attr('y', d => (d.group === 'root' ? 10 : 5) + 12);
+                labelSelection = nodeGroupSelection.append("text").text(d => d.id)
+                    .attr('x', 0).attr('y', d => (d.group === 'root' ? 10 : 5) + 12);
 
-                // Update Simulation
-                simulationInstance.nodes(subgraphNodes);
-                simulationInstance.force("link").links(subgraphLinks);
-                simulationInstance.alpha(1).restart();
+                // UPDATE SIMULATION
+                simulationInstance.nodes(subgraphNodes); simulationInstance.force("link").links(subgraphLinks); simulationInstance.alpha(1).restart();
 
-                searchLoading.style('display', 'none');
-                console.log("Graph update complete.");
+                searchLoading.style('display', 'none'); console.log("Graph update complete.");
 
             }, 50);
         }
 
         // --- Animation Tick Function ---
         function ticked() {
-             if (linkSelection && linkSelection.nodes().length > 0) {
+            if (linkSelection && linkSelection.nodes().length > 0) {
                  linkSelection
-                    .attr("x1", d => d.source?.x)
-                    .attr("y1", d => d.source?.y)
-                    .attr("x2", d => d.target?.x)
-                    .attr("y2", d => d.target?.y);
+                    .attr("x1", d => d.source?.x || 0) .attr("y1", d => d.source?.y || 0)
+                    .attr("x2", d => d.target?.x || 0) .attr("y2", d => d.target?.y || 0);
             }
            if (nodeGroupSelection && nodeGroupSelection.nodes().length > 0) {
-                 nodeGroupSelection
-                    .attr("transform", d => `translate(${d.x || 0},${d.y || 0})`);
+                 nodeGroupSelection.attr("transform", d => `translate(${d.x || width/2},${d.y || height/2})`);
             }
         }
 
         // --- Event Handlers ---
-        function handleMouseOver(event, d) {
-             tooltip.style("opacity", 1).html(d.id);
-             d3.select(this).transition().duration(100).attr("r", d.group === 'root' ? 15 : 10);
-        }
-        function handleMouseMove(event) {
-            tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px");
-        }
-        function handleMouseOut(event, d) {
-            tooltip.style("opacity", 0);
-             d3.select(this).transition().duration(100).attr("r", d.group === 'root' ? 10 : 5);
-        }
-        function handleDoubleClick(event, d) {
-            if (d.url) window.open(d.url, '_blank');
-            else console.warn("Node clicked, but no URL found in data:", d);
-        }
+        function handleMouseOver(event, d) { /* Tooltip + Enlarge */ tooltip.style("opacity", 1).html(d.id); d3.select(this).transition().duration(100).attr("r", d.group === 'root' ? 15 : 10); }
+        function handleMouseMove(event) { /* Tooltip follow */ tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px"); }
+        function handleMouseOut(event, d) { /* Hide Tooltip + Reset size */ tooltip.style("opacity", 0); d3.select(this).transition().duration(100).attr("r", d.group === 'root' ? 10 : 5); }
+        function handleDoubleClick(event, d) { /* Open URL */ if (d.url) window.open(d.url, '_blank'); else console.warn("Node clicked, but no URL found:", d); }
 
         // --- Search Event Listeners ---
-        const searchInput = document.getElementById('search-input');
-        const searchButton = document.getElementById('search-button');
+        const searchInput = document.getElementById('search-input'); const searchButton = document.getElementById('search-button');
+        searchButton.addEventListener('click', () => { /* Trigger update */ const searchTerm = searchInput.value.trim(); if (searchTerm) updateGraph(searchTerm); });
+        searchInput.addEventListener('keypress', function(event) { /* Trigger update on Enter */ if (event.key === 'Enter') { const searchTerm = searchInput.value.trim(); if (searchTerm) updateGraph(searchTerm); } });
 
-        searchButton.addEventListener('click', () => {
-             const searchTerm = searchInput.value.trim();
-             if (searchTerm) updateGraph(searchTerm);
-        });
-        searchInput.addEventListener('keypress', function(event) {
-            if (event.key === 'Enter') {
-                 const searchTerm = searchInput.value.trim();
-                 if (searchTerm) updateGraph(searchTerm);
-            }
-        });
+        // --- Explanation Toggle Listener ---
+        explanationToggle.on('click', () => {
+             const isExpanded = explanationContent.style('display') === 'block';
+             explanationContent.style('display', isExpanded ? 'none' : 'block');
+             explanationContainer.classed('expanded', !isExpanded);
+         });
 
     </script>
 </body>
