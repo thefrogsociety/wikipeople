@@ -21,12 +21,10 @@
             color: #ccc; /* Default text color */
         }
         /* Graph Styles */
-        /* Default solid line style (now matches root node color) */
         .links line {
              stroke: #d8ff4d; /* Central node color */
              stroke-opacity: 0.7; /* Slightly more visible */
         }
-        /* Style for one-way links (dotted and dimmer) */
         .links line.oneway {
             stroke: #999; /* Keep one-way links gray */
             stroke-dasharray: 4,4; /* Dotted line effect */
@@ -63,8 +61,18 @@
         #search-message, #initial-message { /* Combined message styles */
              font-family: 'Press Start 2P', cursive; font-size: 8px;
              margin-top: 4px; /* Add some space */
-             height: 1.2em; /* Ensure space even when empty */
+             min-height: 1.2em; /* Ensure space even when empty, use min-height */
          }
+         /* Style for suggestion link */
+         #search-message a {
+             color: #61dafb; /* Leaderboard title color */
+             text-decoration: underline;
+             cursor: pointer;
+         }
+         #search-message a:hover {
+             color: #fff;
+         }
+
         /* Stats Display Area */
         #stats-container {
             position: absolute;
@@ -230,7 +238,7 @@
             <span style="color:#d8ff4d">Root</span>,
             <span style="color:#ff7f0e">Mutual</span>, <!-- Changed color name -->
             <span style="color:#2ca02c">Links To Root</span>, <!-- Changed color name -->
-            <span style="color:#1f77b4">Linked By Root</span>. <!-- Changed color name -->
+            <span style="color:#1f7f04">Linked By Root</span>. <!-- Changed color name -->
         </div>
     </div>
 
@@ -251,17 +259,15 @@
         const explanationToggle = d3.select('#explanation-toggle');
         const explanationContent = d3.select('#explanation-content');
 
-        // --- UPDATED NODE COLORS ---
         const nodeColors = {
             "root": "#d8ff4d",           // Current searched person (Lime Green)
             "mutual_neighbor": "#ff7f0e", // Links both ways with root (Orange)
             "in_neighbor": "#2ca02c",    // Links TO root only (Dark Green)
             "out_neighbor": "#1f77b4"     // Linked FROM root only (Blue)
          };
-        // --- END UPDATED NODE COLORS ---
-
         const defaultRoot = "Michael Stevens"; // Default root
         const LEADERBOARD_SIZE = 10;
+        const SUGGESTION_THRESHOLD = 3; // Max Levenshtein distance for suggestions
 
         let fullGraphData = null;
         let fullNodesMap = new Map();
@@ -270,6 +276,7 @@
         let inDegrees = new Map();
         let outDegrees = new Map();
         let rankedNodes = [];
+        let allNodeNames = []; // Store all names for suggestion calculation
 
         let simulationInstance = null;
         let nodeGroupSelection = null;
@@ -278,6 +285,28 @@
         let linkSelection = null;
         let zoomBehavior = null;
         let initialMessageVisible = true;
+
+
+        // --- Levenshtein Distance Function ---
+        // (Simple implementation for demonstration)
+        function levenshteinDistance(a, b) {
+            if (a.length === 0) return b.length;
+            if (b.length === 0) return a.length;
+            const matrix = [];
+            for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+            for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+            for (let i = 1; i <= b.length; i++) {
+                for (let j = 1; j <= a.length; j++) {
+                const cost = a[j - 1] === b[i - 1] ? 0 : 1;
+                matrix[i][j] = Math.min(
+                    matrix[i - 1][j] + 1,      // Deletion
+                    matrix[i][j - 1] + 1,      // Insertion
+                    matrix[i - 1][j - 1] + cost // Substitution
+                );
+                }
+            }
+            return matrix[b.length][a.length];
+        }
 
 
         // --- Drag Functions ---
@@ -289,14 +318,17 @@
         }
 
         // --- Load Full Data & Pre-process ---
+        // Make sure to use YOUR actual public URL here if hosting externally!
         d3.json("full_graph.json").then(graph => {
             console.log("Full graph data loaded.");
             loadingText.style("display", "none");
             fullGraphData = graph;
 
             console.log("Pre-processing graph data...");
+            allNodeNames = []; // Reset just in case
             fullGraphData.nodes.forEach(n => {
                 fullNodesMap.set(n.id, n);
+                allNodeNames.push(n.id); // Store name for suggestions
                 inDegrees.set(n.id, 0); outDegrees.set(n.id, 0);
             });
             fullGraphData.links.forEach(l => {
@@ -364,6 +396,28 @@
             svg.call(zoomBehavior);
         }
 
+        // --- Find Closest Match Function ---
+        function findClosestMatch(searchTerm) {
+            let bestMatch = null;
+            let minDistance = Infinity;
+            const lowerSearchTerm = searchTerm.toLowerCase();
+
+            // Iterate through all known names
+            for (const name of allNodeNames) {
+                const distance = levenshteinDistance(lowerSearchTerm, name.toLowerCase());
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    bestMatch = name;
+                }
+                // Optimization: If exact match found (distance 0), stop early
+                if (minDistance === 0) break;
+            }
+
+            // Return the best match only if it's close enough
+            return minDistance <= SUGGESTION_THRESHOLD ? bestMatch : null;
+        }
+
+
         // --- Graph Update Function ---
         function updateGraph(rootPersonName) {
             // Handle messages
@@ -384,10 +438,25 @@
                 }
                 let actualRootName = rootPersonName; let found = false;
                 const lowerCaseName = rootPersonName.toLowerCase();
+                // Check for exact match first (case-insensitive)
                 for (const key of fullNodesMap.keys()) {
                     if (key.toLowerCase() === lowerCaseName) { actualRootName = key; found = true; break; }
                 }
-                if (!found) { searchMessage.text(`'${rootPersonName}' not found.`); searchLoading.style('display', 'none'); return; }
+
+                // --- If not found, try finding a suggestion ---
+                if (!found) {
+                     const suggestion = findClosestMatch(rootPersonName);
+                     if (suggestion) {
+                         // Display suggestion with clickable link
+                         searchMessage.html(`'${rootPersonName}' not found. Did you mean: <a onclick="updateGraph('${suggestion.replace(/'/g, "\\'")}')">${suggestion}</a>?`); // Use html() for link
+                     } else {
+                         searchMessage.text(`'${rootPersonName}' not found.`);
+                     }
+                     searchLoading.style('display', 'none');
+                     return; // Stop processing
+                }
+                // --- End suggestion logic ---
+
                 rootPersonName = actualRootName; // Use correct case
 
                 console.log(`Updating graph for root: ${rootPersonName}`);
