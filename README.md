@@ -6,9 +6,11 @@ The final web application allows you to search for any person in the dataset and
 
 # How It Works: The Data Pipeline & Visualization
 
-parse_wiki.py: Reads the multi-gigabyte simplewiki-latest-pages-articles-multistream.xml.bz2 dump. It parses the wikitext of every article to find all internal links, creating a massive edge-list.csv file (e.g., "Albert Einstein" -> "Germany").
+## parse_wiki.py: 
 
-filter_people.py:
+Reads the multi-gigabyte simplewiki-latest-pages-articles-multistream.xml.bz2 dump. It parses the wikitext of every article to find all internal links, creating a massive edge-list.csv file (e.g., "Albert Einstein" -> "Germany").
+
+## filter_people.py:
 
 Runs one "master query" against the Wikidata SPARQL endpoint to get a complete list of all 77,000+ articles on Simple English Wikipedia that are an "instance of human."
 
@@ -16,13 +18,13 @@ Saves this master list to people-list.txt.
 
 Filters the edge-list.csv to keep only the links that go from a person to another person, saving the result as people-graph.csv.
 
-create_full_json.py:
+## create_full_json.py:
 
 Reads the filtered people-graph.csv.
 
 Converts the graph data (nodes and links) into a full_graph.json file, adding Simple English Wikipedia URLs to each person. This JSON format is optimized for loading into the web visualization.
 
-index.html:
+## index.html:
 
 A single-page web application using D3.js.
 
@@ -34,7 +36,7 @@ Calculates and displays the subgraph of mutually linked neighbors and the connec
 
 Allows dragging nodes, zooming/panning, viewing names, and double-clicking nodes to open their Wikipedia page.
 
-analyze.py (Optional):
+## analyze.py (Optional):
 
 Loads the people-graph.csv into networkx.
 
