@@ -103,7 +103,7 @@ python -m http.server 8000
 
 ## Run Analysis:
 
-# Get statistics about the network
+### Get statistics about the network
 python analyze.py 
 
 
