@@ -21,196 +21,102 @@
             color: #ccc; /* Default text color */
         }
         /* Graph Styles */
-        /* Default solid line style (now matches root node color) */
-        .links line {
-             stroke: #d8ff4d; /* Central node color */
-             stroke-opacity: 0.7; /* Slightly more visible */
-        }
-        /* Style for one-way links (dotted and dimmer) */
-        .links line.oneway {
-            stroke: #999; /* Keep one-way links gray */
-            stroke-dasharray: 4,4; /* Dotted line effect */
-            stroke-opacity: 0.4; /* Lower opacity */
-        }
+        .links line { stroke: #d8ff4d; stroke-opacity: 0.7; }
+        .links line.oneway { stroke: #999; stroke-dasharray: 4,4; stroke-opacity: 0.4; }
         .node-circle { stroke: #fff; stroke-width: 1.5px; cursor: pointer; }
-        .node-circle.highlighted { stroke: #ffcc00; stroke-width: 3px; }
-        .nodes-and-labels g text {
-            fill: #ccc;
-            font-size: 10px;
-            pointer-events: none;
-            text-anchor: middle;
-            font-family: 'Press Start 2P', cursive;
-        }
+        .nodes-and-labels g text { fill: #ccc; font-size: 10px; pointer-events: none; text-anchor: middle; font-family: 'Press Start 2P', cursive; }
         /* Tooltip */
-        #tooltip {
-            position: absolute; opacity: 0; background-color: #333; color: white;
-            padding: 8px 12px; border-radius: 6px; pointer-events: none;
-            transition: opacity 0.2s; font-size: 0.875rem; font-family: sans-serif; /* Keep tooltip readable */
-        }
+        #tooltip { position: absolute; opacity: 0; background-color: #333; color: white; padding: 8px 12px; border-radius: 6px; pointer-events: none; transition: opacity 0.2s; font-size: 0.875rem; font-family: sans-serif; }
         /* Search Area */
         #search-container { position: absolute; top: 10px; left: 10px; z-index: 10; }
         #search-button, #randomize-button { /* Apply styles to both buttons */
             background-color: #d8ff4d; color: #1a1a1a; transition: background-color 0.2s;
             font-family: 'Press Start 2P', cursive; padding-top: 6px; padding-bottom: 6px;
-            font-size: 14px;
-            margin-left: 8px; /* Add margin between elements */
+            font-size: 14px; margin-left: 8px;
         }
-        #search-button:hover, #randomize-button:hover {
-             background-color: #b8cc3d; /* Shared hover color */
-        }
-        /* Randomize button gets same base style as search button */
-        /* No need for separate #randomize-button style unless different */
-
-        #search-input {
-             font-family: 'Press Start 2P', cursive; font-size: 14px;
-             width: 350px; /* Increased width again */
-        }
+        #search-button:hover, #randomize-button:hover { background-color: #b8cc3d; }
+        #search-input { font-family: 'Press Start 2P', cursive; font-size: 14px; width: 350px; }
         #search-loading { display: none; margin-left: 10px; font-style: normal; color: #aaa; font-size: 10px;}
-        #search-message, #initial-message { /* Combined message styles */
-             font-family: 'Press Start 2P', cursive; font-size: 8px;
-             margin-top: 4px; /* Add some space */
-             min-height: 1.2em; /* Ensure space even when empty, use min-height */
-         }
-         /* Style for suggestion link */
-         #search-message a {
-             color: #61dafb; /* Leaderboard title color */
-             text-decoration: underline;
-             cursor: pointer;
-         }
-         #search-message a:hover {
-             color: #fff;
-         }
+        #search-message, #initial-message { font-family: 'Press Start 2P', cursive; font-size: 8px; margin-top: 4px; min-height: 1.2em; }
+        #search-message a { color: #61dafb; text-decoration: underline; cursor: pointer; }
+        #search-message a:hover { color: #fff; }
 
         /* Stats Display Area */
         #stats-container {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background-color: rgba(40, 40, 40, 0.8);
-            padding: 10px;
-            border-radius: 8px;
-            z-index: 10;
-            font-size: 10px; /* Base size for stats */
-            line-height: 1.4;
-            min-width: 200px; /* Ensure some width */
-            max-width: 300px; /* Add max width for description */
-            color: #eee;
-            font-family: 'Press Start 2P', cursive; /* Apply pixel font */
+            position: absolute; top: 10px; right: 10px; background-color: rgba(40, 40, 40, 0.8);
+            padding: 10px; border-radius: 8px; z-index: 10; font-size: 10px; line-height: 1.4;
+            min-width: 200px; max-width: 300px; color: #eee; font-family: 'Press Start 2P', cursive;
+            transition: height 0.3s ease-out;
+            height: auto;
         }
-        #stats-container h3 {
-             font-size: 12px;
-             margin-bottom: 5px;
-             color: #d8ff4d; /* Match root node color */
-             border-bottom: 1px solid #555;
-             padding-bottom: 3px;
+        #stats-container h3 { 
+            font-size: 12px; margin-bottom: 5px; color: #d8ff4d; border-bottom: 1px solid #555; padding-bottom: 3px;
+            cursor: pointer; user-select: none;
         }
-         /* Style for the description */
+        #stats-container.collapsed {
+            height: 35px;
+            overflow: hidden;
+            padding-bottom: 5px;
+        }
+        /* Style for the description */
          #stats-description {
-             margin-top: 8px;
-             font-size: 9px; /* Slightly smaller for description */
-             color: #bbb;
-             border-top: 1px solid #555; /* Separator line */
-             padding-top: 5px;
+             margin-top: 8px; font-size: 9px; color: #bbb; border-top: 1px solid #555; padding-top: 5px;
+             max-height: 120px; overflow-y: auto;
          }
-
+        /* Chart Area Styling */
+        #stats-chart-area {
+            margin-top: 10px;
+            padding-top: 5px;
+            border-top: 1px solid #555;
+            padding-bottom: 5px; 
+        }
         /* Leaderboard Area */
         #leaderboard-container {
-            position: absolute;
-            bottom: 10px;
-            left: 10px;
-            background-color: rgba(40, 40, 40, 0.8);
-            padding: 10px;
-            border-radius: 8px;
-            z-index: 10;
-            font-size: 10px; /* Base size for leaderboard */
-            line-height: 1.4;
-            max-height: 30vh; /* Limit height */
-            /* Removed overflow-y: auto; */
-            color: #eee;
-            font-family: 'Press Start 2P', cursive; /* Apply pixel font */
+            position: absolute; bottom: 10px; left: 10px; background-color: rgba(40, 40, 40, 0.8);
+            padding: 10px; border-radius: 8px; z-index: 10; font-size: 10px; line-height: 1.4;
+            max-height: 30vh; color: #eee; font-family: 'Press Start 2P', cursive;
+            transition: max-height 0.3s ease-out, padding 0.3s ease-out;
         }
-        /* Updated leaderboard title color */
-        #leaderboard-container h3 {
-             font-size: 12px;
-             margin-bottom: 5px;
-             color: #d8ff4d; /* Match root node color */
-             border-bottom: 1px solid #555;
-             padding-bottom: 3px;
+        #leaderboard-container.collapsed {
+            max-height: 35px;
+            overflow: hidden;
         }
-         #leaderboard-container ol {
-             list-style-position: inside;
-             padding-left: 0;
-         }
-         #leaderboard-container li {
-             margin-bottom: 2px;
-         }
-         #leaderboard-container li span {
-            color: #aaa; /* Lighter color for count */
-            margin-left: 5px;
-         }
+        #leaderboard-container h3 { 
+            font-size: 12px; margin-bottom: 5px; color: #d8ff4d; border-bottom: 1px solid #555; padding-bottom: 3px;
+            cursor: pointer; user-select: none;
+        }
+         #leaderboard-container ol { list-style-position: inside; padding-left: 0; }
+         #leaderboard-container li { margin-bottom: 2px; }
+         #leaderboard-container li span { color: #aaa; margin-left: 5px; }
 
          /* Loading Text */
-         #loading {
-             font-family: 'Press Start 2P', cursive;
-         }
-
+         #loading { font-family: 'Press Start 2P', cursive; }
          /* Footer Attribution */
          #footer-attribution {
-             position: absolute;
-             bottom: calc(30vh + 25px); /* Position above leaderboard (adjust 25px gap as needed) */
-             left: 10px;
-             font-size: 8px; /* Small text */
-             color: #777; /* Dim color */
-             z-index: 5; /* Below other UI elements like leaderboard */
-             font-family: 'Press Start 2P', cursive; /* Apply pixel font */
+             position: absolute; bottom: calc(30vh + 25px); left: 10px; font-size: 8px; color: #777; z-index: 5; font-family: 'Press Start 2P', cursive;
          }
-
          /* Explanation Area */
          #explanation-container {
-            position: absolute;
-            bottom: 10px;
-            right: 10px;
-            background-color: rgba(40, 40, 40, 0.8);
-            padding: 10px;
-            border-radius: 8px;
-            z-index: 10;
-            font-size: 10px; /* Base size for explanation */
-            line-height: 1.4;
-            max-width: 250px; /* Limit width */
-            color: #eee;
-            font-family: 'Press Start 2P', cursive; /* Apply pixel font */
+            position: absolute; bottom: 10px; right: 10px; background-color: rgba(40, 40, 40, 0.8);
+            padding: 10px; border-radius: 8px; z-index: 10; font-size: 10px; line-height: 1.4;
+            max-width: 250px; color: #eee; font-family: 'Press Start 2P', cursive;
          }
-         #explanation-toggle {
-            font-size: 12px;
-            margin-bottom: 5px;
-            color: #aaa;
-            cursor: pointer;
-            border-bottom: 1px solid #555;
-            padding-bottom: 3px;
-            user-select: none; /* Prevent text selection on click */
-         }
-         #explanation-toggle::after {
-             content: ' [+]'; /* Indicator for collapsed state */
-             font-size: 10px;
-         }
-         #explanation-container.expanded #explanation-toggle::after {
-              content: ' [-]'; /* Indicator for expanded state */
-         }
-         #explanation-content {
-             display: none; /* Hidden by default */
-             margin-top: 5px;
-         }
+         #explanation-toggle { font-size: 12px; margin-bottom: 5px; color: #aaa; cursor: pointer; border-bottom: 1px solid #555; padding-bottom: 3px; user-select: none; }
+         #explanation-toggle::after { content: ' [+]'; font-size: 10px; }
+         #explanation-container.expanded #explanation-toggle::after { content: ' [-]'; }
+         #explanation-content { display: none; margin-top: 5px; }
 
 
     </style>
 </head>
 <body class="h-full text-gray-100">
 
+    
     <!-- Search UI -->
     <div id="search-container">
         <input type="text" id="search-input" placeholder="Enter root person..." class="px-2 py-1 rounded border border-gray-600 bg-gray-700 text-white focus:outline-none focus:border-blue-500">
         <button id="search-button" class="px-3 py-1 rounded font-semibold">Visualize</button>
-        <!-- Randomize Button now uses shared button style -->
+        <!-- Randomize Button added back -->
         <button id="randomize-button" class="px-3 py-1 rounded font-semibold">Randomize</button>
         <span id="search-loading">Processing...</span>
         <div id="initial-message" class="text-xs text-red-400 mt-1 h-4">
@@ -221,20 +127,24 @@
 
     <!-- Stats Display -->
     <div id="stats-container">
-        <h3>Stats for Searched Person</h3>
+        <!-- Added inline onclick for robust toggling -->
+        <h3 onclick="toggleContainer('stats-container')">Person Statistics</h3>
         <div id="stats-content">Select a person...</div>
+        <!-- NEW CHART AREA -->
+        <div id="stats-chart-area"></div> 
         <!-- Added div for description -->
         <div id="stats-description"></div>
     </div>
 
-    <!-- Footer Attribution Line (Moved Position) -->
+    <!-- Footer Attribution Line (Updated text and moved to clear search area) -->
     <div id="footer-attribution">
-        a product made by the frog society
+        WikiPeople - a product made by Duy Le aka the frog society
     </div>
 
      <!-- Leaderboard Display -->
     <div id="leaderboard-container">
-        <h3>Most Mentioned Leaderboard</h3>
+        <!-- Added inline onclick for robust toggling -->
+        <h3 onclick="toggleContainer('leaderboard-container')">Top Mentions</h3>
         <ol id="leaderboard-list"><li>Loading...</li></ol>
     </div>
 
@@ -283,6 +193,9 @@
         const explanationContent = d3.select('#explanation-content');
         const randomizeButton = d3.select('#randomize-button');
         const statsDescriptionDiv = d3.select('#stats-description');
+        const statsContainer = d3.select('#stats-container');
+        const leaderboardContainer = d3.select('#leaderboard-container');
+
 
         const nodeColors = {
             "root": "#d8ff4d",           // Current searched person (Lime Green)
@@ -294,7 +207,8 @@
         const LEADERBOARD_SIZE = 10;
         const SUGGESTION_THRESHOLD = 3; // Max Levenshtein distance for suggestions
         const RICK_ROLL_URL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"; // Rick Roll URL
-
+        const DISTRIBUTION_BINS = [0, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000];
+        
         let fullGraphData = null;
         let fullNodesMap = new Map();
         let fullAdj = new Map();
@@ -303,6 +217,7 @@
         let outDegrees = new Map();
         let rankedNodes = [];
         let allNodeNames = []; // Store all names for suggestion calculation
+        let distributionData = []; // Global storage for histogram bins
 
         let simulationInstance = null;
         let nodeGroupSelection = null;
@@ -314,7 +229,7 @@
 
 
         // --- Levenshtein Distance Function ---
-        function levenshteinDistance(a, b) { /* ... implementation ... */
+        function levenshteinDistance(a, b) {
             if (a.length === 0) return b.length; if (b.length === 0) return a.length;
             const matrix = []; for (let i = 0; i <= b.length; i++) matrix[i] = [i]; for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
             for (let i = 1; i <= b.length; i++) { for (let j = 1; j <= a.length; j++) {
@@ -325,7 +240,7 @@
 
 
         // --- Drag Functions ---
-        function drag(simulation) { /* ... implementation ... */
+        function drag(simulation) {
              function dragstarted(event, d) { if (!event.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; }
             function dragged(event, d) { d.fx = event.x; d.fy = event.y; }
             function dragended(event, d) { if (!event.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; }
@@ -333,14 +248,158 @@
         }
 
         // --- Fetch Wikipedia Description Function ---
-        async function fetchWikipediaDescription(personName) { /* ... implementation ... */
+        async function fetchWikipediaDescription(personName) {
             const encodedName = encodeURIComponent(personName); const url = `https://simple.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro=true&explaintext=true&titles=${encodedName}&origin=*&redirects=1`;
             try { const response = await fetch(url); if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`); const data = await response.json(); const pages = data.query.pages; const pageId = Object.keys(pages)[0]; if (pageId === "-1") { return "No description found on Simple Wikipedia."; } const extract = pages[pageId].extract; return extract ? extract.substring(0, 200) + (extract.length > 200 ? '...' : '') : "No description found."; } catch (error) { console.error("Error fetching Wikipedia description:", error); return "Could not fetch description."; }
         }
 
+        // --- Distribution Calculation Function (Runs Once) ---
+        function calculateDistributionBins() {
+            const allDegrees = Array.from(inDegrees.values());
+            const uniqueDegrees = Array.from(fullNodesMap.keys()).length;
+
+            let lastUpper = -1;
+            distributionData = [];
+
+            for (const upper of DISTRIBUTION_BINS) {
+                const lower = lastUpper + 1;
+                const count = allDegrees.filter(d => d >= lower && d <= upper).length;
+                
+                let rangeLabel = `${lower}-${upper}`;
+                if (upper === 0) rangeLabel = '0';
+                if (lower === 1001) rangeLabel = '1000+';
+
+                if (lower <= 1000) { // Limit explicit bins to 1000
+                    distributionData.push({ range: rangeLabel, count: count, upperLimit: upper, lowerLimit: lower });
+                }
+                lastUpper = upper;
+            }
+            
+            // Add final catch-all bin for degrees > 1000
+            const finalLower = 1001;
+            const finalCount = allDegrees.filter(d => d >= finalLower).length;
+            if (finalCount > 0) {
+                 distributionData.push({ range: '1000+', count: finalCount, upperLimit: Infinity, lowerLimit: finalLower });
+            }
+
+            // Remove zero-count bins to keep chart clean, except for the 0-mention bin
+            distributionData = distributionData.filter(d => d.count > 0 || d.lowerLimit === 0);
+        }
+        
+        // --- Distribution Drawing Function (Runs on Search) ---
+        function drawDistributionChart(personName, personInDegree) {
+            const chartDiv = d3.select('#stats-chart-area');
+            chartDiv.html(''); // Clear previous chart
+
+            const chartWidth = 280;
+            const chartHeight = 120; // Increased height
+            const padding = { top: 5, right: 5, bottom: 50, left: 5 }; // Reduced left padding to 5, increased bottom to 50
+            
+            if (distributionData.length === 0) {
+                chartDiv.text("Distribution data not ready.");
+                return;
+            }
+
+            const svgChart = chartDiv.append("svg")
+                .attr("width", chartWidth)
+                .attr("height", chartHeight)
+                .style("background", "transparent");
+
+            const innerWidth = chartWidth - padding.left - padding.right;
+            const innerHeight = chartHeight - padding.top - padding.bottom;
+            
+            const g = svgChart.append("g")
+                .attr("transform", `translate(${padding.left}, ${padding.top})`);
+
+
+            // --- SCALES ---
+            const xScale = d3.scaleBand()
+                .domain(distributionData.map(d => d.range))
+                .range([0, innerWidth])
+                .padding(0.1);
+
+            const maxY = d3.max(distributionData, d => d.count);
+
+            const yScale = d3.scaleLinear()
+                .domain([0, maxY])
+                .range([innerHeight, 0]);
+
+
+            // --- DRAW AXIS (Simplified & Fixed) ---
+            // X-Axis (Labels)
+            const xAxisGroup = g.append("g")
+                .attr("transform", `translate(0, ${innerHeight})`)
+                .call(d3.axisBottom(xScale).tickSize(0).tickPadding(5));
+                
+            // Apply font and rotation styles to prevent clipping
+            xAxisGroup.selectAll("text")
+                .style("text-anchor", "end")
+                .attr("dx", "-.8em")
+                .attr("dy", ".15em")
+                .attr("transform", "rotate(-65)")
+                .attr("fill", "#ccc")
+                .attr("font-size", "7px")
+                .attr("font-family", "'Press Start 2P', cursive");
+            
+            // Y-Axis (Count label) - Clean horizontal line only
+            g.append("line")
+                .attr("x1", 0)
+                .attr("y1", innerHeight)
+                .attr("x2", 0)
+                .attr("y2", 0)
+                .attr("stroke", "#aaa")
+                .attr("stroke-width", 0.5);
+                
+
+            // --- DRAW BARS ---
+            g.selectAll(".bar")
+                .data(distributionData)
+                .enter().append("rect")
+                .attr("class", "bar")
+                .attr("x", d => xScale(d.range))
+                .attr("y", d => yScale(d.count))
+                .attr("width", xScale.bandwidth())
+                .attr("height", d => innerHeight - yScale(d.count))
+                .attr("fill", "#444");
+
+
+            // --- DRAW CURRENT PERSON MARKER ---
+            
+            const currentBin = distributionData.find(d => personInDegree >= d.lowerLimit && personInDegree <= d.upperLimit);
+            
+            if (currentBin) {
+                const xCenter = xScale(currentBin.range) + xScale.bandwidth() / 2;
+                
+                g.append("circle")
+                    .attr("cx", xCenter)
+                    .attr("cy", yScale(currentBin.count) - 5)
+                    .attr("r", 4)
+                    .attr("fill", nodeColors.root)
+                    .attr("stroke", "#1a1a1a")
+                    .attr("stroke-width", 2)
+                    .append("title")
+                    .text(`${personName} (Mentions: ${personInDegree})`);
+                    
+                g.append("line")
+                    .attr("x1", xCenter)
+                    .attr("y1", innerHeight)
+                    .attr("x2", xCenter)
+                    .attr("y2", yScale(currentBin.count) - 5)
+                    .attr("stroke", nodeColors.root)
+                    .attr("stroke-width", 1)
+                    .attr("stroke-dasharray", "2,2");
+                    
+            }
+        }
+
+
+        // --- Fetch Wikipedia Description Function ---
+        async function fetchWikipediaDescription(personName) {
+            const encodedName = encodeURIComponent(personName); const url = `https://simple.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro=true&explaintext=true&titles=${encodedName}&origin=*&redirects=1`;
+            try { const response = await fetch(url); if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`); const data = await response.json(); const pages = data.query.pages; const pageId = Object.keys(pages)[0]; if (pageId === "-1") { return "No description found on Simple Wikipedia."; } const extract = pages[pageId].extract; return extract ? extract.substring(0, 200) + (extract.length > 200 ? '...' : '') : "No description found."; } catch (error) { console.error("Error fetching Wikipedia description:", error); return "Could not fetch description."; }
+        }
 
         // --- Load Full Data & Pre-process ---
-        // Make sure to use YOUR actual public URL here if hosting externally!
         d3.json("full_graph.json").then(graph => {
             console.log("Full graph data loaded.");
             loadingText.style("display", "none");
@@ -348,10 +407,10 @@
 
             console.log("Pre-processing graph data...");
             allNodeNames = [];
-            fullGraphData.nodes.forEach(n => { /* ... populate maps, degrees, allNodeNames ... */
+            fullGraphData.nodes.forEach(n => {
                 fullNodesMap.set(n.id, n); allNodeNames.push(n.id); inDegrees.set(n.id, 0); outDegrees.set(n.id, 0);
              });
-            fullGraphData.links.forEach(l => { /* ... calculate degrees, build adj lists ... */
+            fullGraphData.links.forEach(l => {
                 const sourceId = typeof l.source === 'object' && l.source !== null ? l.source.id : l.source;
                 const targetId = typeof l.target === 'object' && l.target !== null ? l.target.id : l.target;
                 if (sourceId && targetId && fullNodesMap.has(sourceId) && fullNodesMap.has(targetId)) {
@@ -360,24 +419,37 @@
                     outDegrees.set(sourceId, (outDegrees.get(sourceId) || 0) + 1); inDegrees.set(targetId, (inDegrees.get(targetId) || 0) + 1);
                 }
              });
-            rankedNodes = Array.from(inDegrees.entries()) .map(([id, degree]) => ({ id, inDegree: degree })) .sort((a, b) => b.inDegree - a.inDegree);
+            rankedNodes = Array.from(inDegrees.entries())
+                .map(([id, degree]) => ({ id, inDegree: degree }))
+                .sort((a, b) => b.inDegree - a.inDegree);
+            
+            calculateDistributionBins(); // Calculate bins after degrees are final
+
             displayLeaderboard();
             console.log("Pre-processing complete.");
 
             setupSimulation();
-            setupZoom();
             updateGraph(defaultRoot);
             initialMessageVisible = true;
 
-            // Add Explanation Toggle Listener
-            explanationToggle.on('click', () => { /* ... toggle logic ... */
+            // --- ATTACH LISTENERS AFTER DOM/DATA IS READY ---
+            explanationToggle.on('click', () => {
                 const isExpanded = explanationContent.style('display') === 'block'; explanationContent.style('display', isExpanded ? 'none' : 'block'); explanationContainer.classed('expanded', !isExpanded);
              });
+             
+            d3.select('#stats-toggle').on('click', () => {
+                 statsContainer.classed('collapsed', !statsContainer.classed('collapsed'));
+             });
 
-             // --- Add Randomize Button Listener ---
-             randomizeButton.on('click', () => { /* ... implementation ... */
+            d3.select('#leaderboard-toggle').on('click', () => {
+                 leaderboardContainer.classed('collapsed', !leaderboardContainer.classed('collapsed'));
+             });
+
+             // Add Randomize Button Listener
+             d3.select('#randomize-button').on('click', () => {
                  if (allNodeNames && allNodeNames.length > 0) { const randomIndex = Math.floor(Math.random() * allNodeNames.length); const randomName = allNodeNames[randomIndex]; searchInput.value = randomName; updateGraph(randomName); } else { searchMessage.text("Data not loaded yet for randomize."); }
              });
+
 
         }).catch(error => { /* Error Handling */
             console.error("Error loading full graph data:", error);
@@ -385,29 +457,21 @@
          });
 
         // --- Display Leaderboard ---
-        function displayLeaderboard() { /* ... implementation ... */
+        function displayLeaderboard() {
             leaderboardListOl.html(''); const topN = rankedNodes.slice(0, LEADERBOARD_SIZE);
             topN.forEach((node, index) => { leaderboardListOl.append('li').text(`${index + 1}. ${node.id}`).append('span').text(`(${node.inDegree})`); });
         }
 
         // --- Simulation Setup ---
-        function setupSimulation() { /* ... implementation ... */
+        function setupSimulation() {
             simulationInstance = d3.forceSimulation() .force("link", d3.forceLink().id(d => d.id).distance(100)) .force("charge", d3.forceManyBody().strength(-250)) .force("center", d3.forceCenter(width / 2, height / 2)) .on("tick", ticked);
          }
 
         // --- Zoom Setup ---
-         function setupZoom() { /* ... implementation ... */
+         function setupZoom() {
             zoomBehavior = d3.zoom() .extent([[0, 0], [width, height]]) .scaleExtent([0.1, 8]) .on("zoom", ({ transform }) => { const mainGroup = svg.select("g"); if (mainGroup.node()) mainGroup.attr("transform", transform); }); svg.call(zoomBehavior);
           }
-
-        // --- Find Closest Match Function ---
-        function findClosestMatch(searchTerm) { /* ... implementation ... */
-            let bestMatch = null; let minDistance = Infinity; const lowerSearchTerm = searchTerm.toLowerCase();
-            for (const name of allNodeNames) { const distance = levenshteinDistance(lowerSearchTerm, name.toLowerCase()); if (distance < minDistance) { minDistance = distance; bestMatch = name; } if (minDistance === 0) break; }
-            return minDistance <= SUGGESTION_THRESHOLD ? bestMatch : null;
-        }
-
-
+          
         // --- Graph Update Function ---
         async function updateGraph(rootPersonName) { // Make the function async
             // Handle messages
@@ -415,33 +479,40 @@
             searchLoading.style('display', 'inline'); searchMessage.text('');
             statsContentDiv.html("Loading stats..."); statsDescriptionDiv.html("Fetching description...");
 
-            // --- Rick Astley Easter Egg (Silent Redirect) ---
+            // Rick Astley Easter Egg (Silent Redirect)
             if (rootPersonName.toLowerCase() === 'rick astley') {
-                searchLoading.style('display', 'none');
-                window.location.href = RICK_ROLL_URL; // Redirect immediately
-                return; // Stop processing
+                searchLoading.style('display', 'none'); window.location.href = RICK_ROLL_URL; return;
             }
-            // --- END Easter Egg ---
-
-            if (rootPersonName.toLowerCase() === 'the frog society') { /* Frog message */ searchMessage.text("he is too shy to be on wikipedia but he wants you to know that he loves you for remembering him <3"); searchLoading.style('display', 'none'); svg.selectAll("g").remove(); statsContentDiv.html(''); statsDescriptionDiv.html(''); return; }
+            if (rootPersonName.toLowerCase() === 'the frog society') { /* Frog message */
+                 searchMessage.text("he is too shy to be on wikipedia but he wants you to know that he loves you for remembering him <3"); searchLoading.style('display', 'none'); svg.selectAll("g").remove(); statsContentDiv.html(''); statsDescriptionDiv.html(''); return;
+            }
 
             let actualRootName = rootPersonName; let found = false; const lowerCaseName = rootPersonName.toLowerCase();
             for (const key of fullNodesMap.keys()) { if (key.toLowerCase() === lowerCaseName) { actualRootName = key; found = true; break; } }
 
-            if (!found) { /* Suggestion logic */ const suggestion = findClosestMatch(rootPersonName); if (suggestion) { searchMessage.html(`'${rootPersonName}' not found. Did you mean: <a onclick="updateGraph('${suggestion.replace(/'/g, "\\'")}')">${suggestion}</a>?`); } else { searchMessage.text(`'${rootPersonName}' not found.`); } searchLoading.style('display', 'none'); statsContentDiv.html(''); statsDescriptionDiv.html(''); return; }
+            if (!found) { /* Suggestion logic removed */
+                 searchMessage.text(`'${rootPersonName}' not found.`);
+                 searchLoading.style('display', 'none'); statsContentDiv.html(''); statsDescriptionDiv.html(''); return;
+            }
             rootPersonName = actualRootName; // Use correct case
 
             const description = await fetchWikipediaDescription(rootPersonName); // Fetch description
 
             setTimeout(() => { // Allow UI update for description
-                if (!fullGraphData) { /* Error checks */ searchMessage.text('Graph data not loaded.'); searchLoading.style('display', 'none'); return; }
+                if (!fullGraphData) { searchMessage.text('Graph data not loaded.'); searchLoading.style('display', 'none'); return; }
 
                 console.log(`Updating graph for root: ${rootPersonName}`);
 
-                // Display Stats & Description
+                // Display Stats & Description (Reworded content)
                 const personInDegree = inDegrees.get(rootPersonName) || 0; const personOutDegree = outDegrees.get(rootPersonName) || 0; const personRank = rankedNodes.findIndex(node => node.id === rootPersonName) + 1;
-                statsContentDiv.html(`<b>${rootPersonName}</b><br>Mentioned By: ${personInDegree}<br>Mentions: ${personOutDegree}<br>Rank (by mentions): ${personRank > 0 ? personRank : 'N/A'} / ${rankedNodes.length}`);
+                // --- CORRECTED STATS DISPLAY ---
+                statsContentDiv.html(`<b>${rootPersonName}</b><br>Mentions: ${personOutDegree}<br>Mentioned By: ${personInDegree}<br>Rank: ${personRank} / ${rankedNodes.length}`);
+                // ---
                 statsDescriptionDiv.text(description);
+                
+                // *** Draw Distribution Chart ***
+                drawDistributionChart(rootPersonName, personInDegree);
+                // ***
 
                 // Find ALL Neighbors (Union)
                 const outNeighbors = fullAdj.get(rootPersonName) || new Set(); const inNeighbors = fullRevAdj.get(rootPersonName) || new Set(); const allNeighborIds = new Set([...outNeighbors, ...inNeighbors]);
@@ -471,28 +542,37 @@
          }
 
         // --- Animation Tick Function ---
-        function ticked() { /* ... implementation ... */
+        function ticked() {
             if (linkSelection && linkSelection.nodes().length > 0) { linkSelection .attr("x1", d => d.source?.x || 0) .attr("y1", d => d.source?.y || 0) .attr("x2", d => d.target?.x || 0) .attr("y2", d => d.target?.y || 0); }
            if (nodeGroupSelection && nodeGroupSelection.nodes().length > 0) { nodeGroupSelection.attr("transform", d => `translate(${d.x || width/2},${d.y || height/2})`); }
         }
 
         // --- Event Handlers ---
-        function handleMouseOver(event, d) { /* ... implementation ... */ tooltip.style("opacity", 1).html(d.id); d3.select(this).transition().duration(100).attr("r", d.group === 'root' ? 15 : 10); }
-        function handleMouseMove(event) { /* ... implementation ... */ tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px"); }
-        function handleMouseOut(event, d) { /* ... implementation ... */ tooltip.style("opacity", 0); d3.select(this).transition().duration(100).attr("r", d.group === 'root' ? 10 : 5); }
-        function handleDoubleClick(event, d) { /* ... implementation ... */ if (d.url) window.open(d.url, '_blank'); else console.warn("Node clicked, but no URL found:", d); }
+        function handleMouseOver(event, d) { tooltip.style("opacity", 1).html(d.id); d3.select(this).transition().duration(100).attr("r", d.group === 'root' ? 15 : 10); }
+        function handleMouseMove(event) { tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px"); }
+        function handleMouseOut(event, d) { tooltip.style("opacity", 0); d3.select(this).transition().duration(100).attr("r", d.group === 'root' ? 10 : 5); }
+        function handleDoubleClick(event, d) { if (d.url) window.open(d.url, '_blank'); else console.warn("Node clicked, but no URL found:", d); }
 
         // --- Search Event Listeners ---
-        const searchInput = document.getElementById('search-input'); const searchButton = document.getElementById('search-button');
-        searchButton.addEventListener('click', () => { /* ... implementation ... */ const searchTerm = searchInput.value.trim(); if (searchTerm) updateGraph(searchTerm); });
-        searchInput.addEventListener('keypress', function(event) { /* ... implementation ... */ if (event.key === 'Enter') { const searchTerm = searchInput.value.trim(); if (searchTerm) updateGraph(searchTerm); } });
+        const searchInput = document.getElementById('search-input'); const searchButton = d3.select('#search-button');
+        searchButton.on('click', () => { const searchTerm = searchInput.value.trim(); if (searchTerm) updateGraph(searchTerm); });
+        searchInput.addEventListener('keypress', function(event) { if (event.key === 'Enter') { const searchTerm = searchInput.value.trim(); if (searchTerm) updateGraph(searchTerm); } });
 
         // --- Explanation Toggle Listener ---
-        explanationToggle.on('click', () => { /* ... implementation ... */
+        explanationToggle.on('click', () => {
              const isExpanded = explanationContent.style('display') === 'block'; explanationContent.style('display', isExpanded ? 'none' : 'block'); explanationContainer.classed('expanded', !isExpanded);
          });
+
+        // --- Global Toggle Function (Used by inline onclicks) ---
+        function toggleContainer(id) {
+            const container = d3.select('#' + id);
+            container.classed('collapsed', !container.classed('collapsed'));
+        }
+
+        // Make toggle function globally available (for HTML onclick)
+        window.toggleContainer = toggleContainer;
+
 
     </script>
 </body>
 </html>
-
