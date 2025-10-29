@@ -400,7 +400,7 @@
         }
 
         // --- Load Full Data & Pre-process ---
-        d3.json("full_graph.json").then(graph => {
+        d3.json("https://pub-dd5f169084714d5980ce7c150880d0a6.r2.dev/full_graph.json").then(graph => {
             console.log("Full graph data loaded.");
             loadingText.style("display", "none");
             fullGraphData = graph;
