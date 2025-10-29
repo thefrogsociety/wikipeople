@@ -4,6 +4,8 @@ A Python data pipeline that turns the entire Simple English Wikipedia into a "pe
 
 The final web application allows you to search for any person in the dataset and see their mutual connections and the links between those connections.
 
+https://projects.thefrogsociety.com/wikipeople/
+
 # How It Works: The Data Pipeline & Visualization
 
 ## parse_wiki.py: 
