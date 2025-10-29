@@ -21,10 +21,12 @@
             color: #ccc; /* Default text color */
         }
         /* Graph Styles */
+        /* Default solid line style (now matches root node color) */
         .links line {
              stroke: #d8ff4d; /* Central node color */
              stroke-opacity: 0.7; /* Slightly more visible */
         }
+        /* Style for one-way links (dotted and dimmer) */
         .links line.oneway {
             stroke: #999; /* Keep one-way links gray */
             stroke-dasharray: 4,4; /* Dotted line effect */
@@ -47,15 +49,21 @@
         }
         /* Search Area */
         #search-container { position: absolute; top: 10px; left: 10px; z-index: 10; }
-        #search-button {
+        #search-button, #randomize-button { /* Apply styles to both buttons */
             background-color: #d8ff4d; color: #1a1a1a; transition: background-color 0.2s;
             font-family: 'Press Start 2P', cursive; padding-top: 6px; padding-bottom: 6px;
             font-size: 14px;
+            margin-left: 8px; /* Add margin between elements */
         }
-        #search-button:hover { background-color: #b8cc3d; }
+        #search-button:hover, #randomize-button:hover {
+             background-color: #b8cc3d; /* Shared hover color */
+        }
+        /* Randomize button gets same base style as search button */
+        /* No need for separate #randomize-button style unless different */
+
         #search-input {
              font-family: 'Press Start 2P', cursive; font-size: 14px;
-             width: 250px; /* Give input more width */
+             width: 350px; /* Increased width again */
         }
         #search-loading { display: none; margin-left: 10px; font-style: normal; color: #aaa; font-size: 10px;}
         #search-message, #initial-message { /* Combined message styles */
@@ -85,6 +93,7 @@
             font-size: 10px; /* Base size for stats */
             line-height: 1.4;
             min-width: 200px; /* Ensure some width */
+            max-width: 300px; /* Add max width for description */
             color: #eee;
             font-family: 'Press Start 2P', cursive; /* Apply pixel font */
         }
@@ -95,6 +104,15 @@
              border-bottom: 1px solid #555;
              padding-bottom: 3px;
         }
+         /* Style for the description */
+         #stats-description {
+             margin-top: 8px;
+             font-size: 9px; /* Slightly smaller for description */
+             color: #bbb;
+             border-top: 1px solid #555; /* Separator line */
+             padding-top: 5px;
+         }
+
         /* Leaderboard Area */
         #leaderboard-container {
             position: absolute;
@@ -107,14 +125,15 @@
             font-size: 10px; /* Base size for leaderboard */
             line-height: 1.4;
             max-height: 30vh; /* Limit height */
-            overflow-y: auto; /* Add scroll if needed */
+            /* Removed overflow-y: auto; */
             color: #eee;
             font-family: 'Press Start 2P', cursive; /* Apply pixel font */
         }
+        /* Updated leaderboard title color */
         #leaderboard-container h3 {
              font-size: 12px;
              margin-bottom: 5px;
-             color: #61dafb; /* Different color for leaderboard */
+             color: #d8ff4d; /* Match root node color */
              border-bottom: 1px solid #555;
              padding-bottom: 3px;
         }
@@ -190,7 +209,9 @@
     <!-- Search UI -->
     <div id="search-container">
         <input type="text" id="search-input" placeholder="Enter root person..." class="px-2 py-1 rounded border border-gray-600 bg-gray-700 text-white focus:outline-none focus:border-blue-500">
-        <button id="search-button" class="ml-2 px-3 py-1 rounded font-semibold">Visualize</button>
+        <button id="search-button" class="px-3 py-1 rounded font-semibold">Visualize</button>
+        <!-- Randomize Button now uses shared button style -->
+        <button id="randomize-button" class="px-3 py-1 rounded font-semibold">Randomize</button>
         <span id="search-loading">Processing...</span>
         <div id="initial-message" class="text-xs text-red-400 mt-1 h-4">
             <!-- Initial message will be added/removed by JS -->
@@ -202,6 +223,8 @@
     <div id="stats-container">
         <h3>Stats for Searched Person</h3>
         <div id="stats-content">Select a person...</div>
+        <!-- Added div for description -->
+        <div id="stats-description"></div>
     </div>
 
     <!-- Footer Attribution Line (Moved Position) -->
@@ -225,7 +248,7 @@
     <!-- Explanation Box -->
     <div id="explanation-container">
         <h3 id="explanation-toggle">Graph Logic</h3>
-        <!-- Updated Explanation Text -->
+        <!-- CORRECTED Explanation Text -->
         <div id="explanation-content">
             Shows searched person (root) & everyone they link to OR who links to them.
             <br><br>
@@ -235,10 +258,10 @@
             <br><br>
             Node colors show relationship to current root:
             <br>
-            <span style="color:#d8ff4d">Root</span>,
-            <span style="color:#ff7f0e">Mutual</span>, <!-- Changed color name -->
-            <span style="color:#2ca02c">Links To Root</span>, <!-- Changed color name -->
-            <span style="color:#1f7f04">Linked By Root</span>. <!-- Changed color name -->
+            <span style="color:#d8ff4d">Root</span>, <!-- Lime -->
+            <span style="color:#ff7f0e">Mutual</span>, <!-- Orange -->
+            <span style="color:#2ca02c">Links To Root</span>, <!-- Dark Green -->
+            <span style="color:#1f77b4">Linked By Root</span>. <!-- Blue -->
         </div>
     </div>
 
@@ -258,6 +281,8 @@
         const explanationContainer = d3.select('#explanation-container');
         const explanationToggle = d3.select('#explanation-toggle');
         const explanationContent = d3.select('#explanation-content');
+        const randomizeButton = d3.select('#randomize-button');
+        const statsDescriptionDiv = d3.select('#stats-description');
 
         const nodeColors = {
             "root": "#d8ff4d",           // Current searched person (Lime Green)
@@ -268,6 +293,7 @@
         const defaultRoot = "Michael Stevens"; // Default root
         const LEADERBOARD_SIZE = 10;
         const SUGGESTION_THRESHOLD = 3; // Max Levenshtein distance for suggestions
+        const RICK_ROLL_URL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"; // Rick Roll URL
 
         let fullGraphData = null;
         let fullNodesMap = new Map();
@@ -288,34 +314,30 @@
 
 
         // --- Levenshtein Distance Function ---
-        // (Simple implementation for demonstration)
-        function levenshteinDistance(a, b) {
-            if (a.length === 0) return b.length;
-            if (b.length === 0) return a.length;
-            const matrix = [];
-            for (let i = 0; i <= b.length; i++) matrix[i] = [i];
-            for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
-            for (let i = 1; i <= b.length; i++) {
-                for (let j = 1; j <= a.length; j++) {
+        function levenshteinDistance(a, b) { /* ... implementation ... */
+            if (a.length === 0) return b.length; if (b.length === 0) return a.length;
+            const matrix = []; for (let i = 0; i <= b.length; i++) matrix[i] = [i]; for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+            for (let i = 1; i <= b.length; i++) { for (let j = 1; j <= a.length; j++) {
                 const cost = a[j - 1] === b[i - 1] ? 0 : 1;
-                matrix[i][j] = Math.min(
-                    matrix[i - 1][j] + 1,      // Deletion
-                    matrix[i][j - 1] + 1,      // Insertion
-                    matrix[i - 1][j - 1] + cost // Substitution
-                );
-                }
-            }
+                matrix[i][j] = Math.min( matrix[i - 1][j] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j - 1] + cost ); } }
             return matrix[b.length][a.length];
         }
 
 
         // --- Drag Functions ---
-        function drag(simulation) {
+        function drag(simulation) { /* ... implementation ... */
              function dragstarted(event, d) { if (!event.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; }
             function dragged(event, d) { d.fx = event.x; d.fy = event.y; }
             function dragended(event, d) { if (!event.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; }
             return d3.drag().on("start", dragstarted).on("drag", dragged).on("end", dragended);
         }
+
+        // --- Fetch Wikipedia Description Function ---
+        async function fetchWikipediaDescription(personName) { /* ... implementation ... */
+            const encodedName = encodeURIComponent(personName); const url = `https://simple.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro=true&explaintext=true&titles=${encodedName}&origin=*&redirects=1`;
+            try { const response = await fetch(url); if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`); const data = await response.json(); const pages = data.query.pages; const pageId = Object.keys(pages)[0]; if (pageId === "-1") { return "No description found on Simple Wikipedia."; } const extract = pages[pageId].extract; return extract ? extract.substring(0, 200) + (extract.length > 200 ? '...' : '') : "No description found."; } catch (error) { console.error("Error fetching Wikipedia description:", error); return "Could not fetch description."; }
+        }
+
 
         // --- Load Full Data & Pre-process ---
         // Make sure to use YOUR actual public URL here if hosting externally!
@@ -325,27 +347,20 @@
             fullGraphData = graph;
 
             console.log("Pre-processing graph data...");
-            allNodeNames = []; // Reset just in case
-            fullGraphData.nodes.forEach(n => {
-                fullNodesMap.set(n.id, n);
-                allNodeNames.push(n.id); // Store name for suggestions
-                inDegrees.set(n.id, 0); outDegrees.set(n.id, 0);
-            });
-            fullGraphData.links.forEach(l => {
+            allNodeNames = [];
+            fullGraphData.nodes.forEach(n => { /* ... populate maps, degrees, allNodeNames ... */
+                fullNodesMap.set(n.id, n); allNodeNames.push(n.id); inDegrees.set(n.id, 0); outDegrees.set(n.id, 0);
+             });
+            fullGraphData.links.forEach(l => { /* ... calculate degrees, build adj lists ... */
                 const sourceId = typeof l.source === 'object' && l.source !== null ? l.source.id : l.source;
                 const targetId = typeof l.target === 'object' && l.target !== null ? l.target.id : l.target;
                 if (sourceId && targetId && fullNodesMap.has(sourceId) && fullNodesMap.has(targetId)) {
-                    if (!fullAdj.has(sourceId)) fullAdj.set(sourceId, new Set());
-                    if (!fullRevAdj.has(targetId)) fullRevAdj.set(targetId, new Set());
-                    fullAdj.get(sourceId).add(targetId);
-                    fullRevAdj.get(targetId).add(sourceId);
-                    outDegrees.set(sourceId, (outDegrees.get(sourceId) || 0) + 1);
-                    inDegrees.set(targetId, (inDegrees.get(targetId) || 0) + 1);
+                    if (!fullAdj.has(sourceId)) fullAdj.set(sourceId, new Set()); if (!fullRevAdj.has(targetId)) fullRevAdj.set(targetId, new Set());
+                    fullAdj.get(sourceId).add(targetId); fullRevAdj.get(targetId).add(sourceId);
+                    outDegrees.set(sourceId, (outDegrees.get(sourceId) || 0) + 1); inDegrees.set(targetId, (inDegrees.get(targetId) || 0) + 1);
                 }
-            });
-            rankedNodes = Array.from(inDegrees.entries())
-                .map(([id, degree]) => ({ id, inDegree: degree }))
-                .sort((a, b) => b.inDegree - a.inDegree);
+             });
+            rankedNodes = Array.from(inDegrees.entries()) .map(([id, degree]) => ({ id, inDegree: degree })) .sort((a, b) => b.inDegree - a.inDegree);
             displayLeaderboard();
             console.log("Pre-processing complete.");
 
@@ -355,11 +370,14 @@
             initialMessageVisible = true;
 
             // Add Explanation Toggle Listener
-            explanationToggle.on('click', () => {
-                const isExpanded = explanationContent.style('display') === 'block';
-                explanationContent.style('display', isExpanded ? 'none' : 'block');
-                explanationContainer.classed('expanded', !isExpanded);
-            });
+            explanationToggle.on('click', () => { /* ... toggle logic ... */
+                const isExpanded = explanationContent.style('display') === 'block'; explanationContent.style('display', isExpanded ? 'none' : 'block'); explanationContainer.classed('expanded', !isExpanded);
+             });
+
+             // --- Add Randomize Button Listener ---
+             randomizeButton.on('click', () => { /* ... implementation ... */
+                 if (allNodeNames && allNodeNames.length > 0) { const randomIndex = Math.floor(Math.random() * allNodeNames.length); const randomName = allNodeNames[randomIndex]; searchInput.value = randomName; updateGraph(randomName); } else { searchMessage.text("Data not loaded yet for randomize."); }
+             });
 
         }).catch(error => { /* Error Handling */
             console.error("Error loading full graph data:", error);
@@ -367,199 +385,111 @@
          });
 
         // --- Display Leaderboard ---
-        function displayLeaderboard() {
-            leaderboardListOl.html('');
-            const topN = rankedNodes.slice(0, LEADERBOARD_SIZE);
-            topN.forEach((node, index) => {
-                leaderboardListOl.append('li').text(`${index + 1}. ${node.id}`).append('span').text(`(${node.inDegree})`);
-            });
+        function displayLeaderboard() { /* ... implementation ... */
+            leaderboardListOl.html(''); const topN = rankedNodes.slice(0, LEADERBOARD_SIZE);
+            topN.forEach((node, index) => { leaderboardListOl.append('li').text(`${index + 1}. ${node.id}`).append('span').text(`(${node.inDegree})`); });
         }
 
         // --- Simulation Setup ---
-        function setupSimulation() {
-            simulationInstance = d3.forceSimulation()
-                .force("link", d3.forceLink().id(d => d.id).distance(100))
-                .force("charge", d3.forceManyBody().strength(-250))
-                .force("center", d3.forceCenter(width / 2, height / 2))
-                .on("tick", ticked);
-        }
+        function setupSimulation() { /* ... implementation ... */
+            simulationInstance = d3.forceSimulation() .force("link", d3.forceLink().id(d => d.id).distance(100)) .force("charge", d3.forceManyBody().strength(-250)) .force("center", d3.forceCenter(width / 2, height / 2)) .on("tick", ticked);
+         }
 
         // --- Zoom Setup ---
-         function setupZoom() {
-            zoomBehavior = d3.zoom()
-                .extent([[0, 0], [width, height]])
-                .scaleExtent([0.1, 8])
-                .on("zoom", ({ transform }) => {
-                    const mainGroup = svg.select("g");
-                    if (mainGroup.node()) mainGroup.attr("transform", transform);
-                });
-            svg.call(zoomBehavior);
-        }
+         function setupZoom() { /* ... implementation ... */
+            zoomBehavior = d3.zoom() .extent([[0, 0], [width, height]]) .scaleExtent([0.1, 8]) .on("zoom", ({ transform }) => { const mainGroup = svg.select("g"); if (mainGroup.node()) mainGroup.attr("transform", transform); }); svg.call(zoomBehavior);
+          }
 
         // --- Find Closest Match Function ---
-        function findClosestMatch(searchTerm) {
-            let bestMatch = null;
-            let minDistance = Infinity;
-            const lowerSearchTerm = searchTerm.toLowerCase();
-
-            // Iterate through all known names
-            for (const name of allNodeNames) {
-                const distance = levenshteinDistance(lowerSearchTerm, name.toLowerCase());
-                if (distance < minDistance) {
-                    minDistance = distance;
-                    bestMatch = name;
-                }
-                // Optimization: If exact match found (distance 0), stop early
-                if (minDistance === 0) break;
-            }
-
-            // Return the best match only if it's close enough
+        function findClosestMatch(searchTerm) { /* ... implementation ... */
+            let bestMatch = null; let minDistance = Infinity; const lowerSearchTerm = searchTerm.toLowerCase();
+            for (const name of allNodeNames) { const distance = levenshteinDistance(lowerSearchTerm, name.toLowerCase()); if (distance < minDistance) { minDistance = distance; bestMatch = name; } if (minDistance === 0) break; }
             return minDistance <= SUGGESTION_THRESHOLD ? bestMatch : null;
         }
 
 
         // --- Graph Update Function ---
-        function updateGraph(rootPersonName) {
+        async function updateGraph(rootPersonName) { // Make the function async
             // Handle messages
-             if (!initialMessageVisible) { initialMessageDiv.text(""); }
-             initialMessageVisible = false; // Set flag after first potential update
+             if (!initialMessageVisible) { initialMessageDiv.text(""); } initialMessageVisible = false;
+            searchLoading.style('display', 'inline'); searchMessage.text('');
+            statsContentDiv.html("Loading stats..."); statsDescriptionDiv.html("Fetching description...");
 
-
-            searchLoading.style('display', 'inline'); searchMessage.text(''); statsContentDiv.html("Loading stats...");
-
-            if (rootPersonName.toLowerCase() === 'the frog society') { /* Frog message */
-                searchMessage.text("he is too shy to be on wikipedia but he wants you to know that he loves you for remembering him <3");
-                searchLoading.style('display', 'none'); svg.selectAll("g").remove(); statsContentDiv.html(''); return;
+            // --- Rick Astley Easter Egg (Silent Redirect) ---
+            if (rootPersonName.toLowerCase() === 'rick astley') {
+                searchLoading.style('display', 'none');
+                window.location.href = RICK_ROLL_URL; // Redirect immediately
+                return; // Stop processing
             }
+            // --- END Easter Egg ---
 
-            setTimeout(() => { // Allow UI update
-                if (!fullGraphData) { /* Error checks */
-                     searchMessage.text('Graph data not loaded.'); searchLoading.style('display', 'none'); return;
-                }
-                let actualRootName = rootPersonName; let found = false;
-                const lowerCaseName = rootPersonName.toLowerCase();
-                // Check for exact match first (case-insensitive)
-                for (const key of fullNodesMap.keys()) {
-                    if (key.toLowerCase() === lowerCaseName) { actualRootName = key; found = true; break; }
-                }
+            if (rootPersonName.toLowerCase() === 'the frog society') { /* Frog message */ searchMessage.text("he is too shy to be on wikipedia but he wants you to know that he loves you for remembering him <3"); searchLoading.style('display', 'none'); svg.selectAll("g").remove(); statsContentDiv.html(''); statsDescriptionDiv.html(''); return; }
 
-                // --- If not found, try finding a suggestion ---
-                if (!found) {
-                     const suggestion = findClosestMatch(rootPersonName);
-                     if (suggestion) {
-                         // Display suggestion with clickable link
-                         searchMessage.html(`'${rootPersonName}' not found. Did you mean: <a onclick="updateGraph('${suggestion.replace(/'/g, "\\'")}')">${suggestion}</a>?`); // Use html() for link
-                     } else {
-                         searchMessage.text(`'${rootPersonName}' not found.`);
-                     }
-                     searchLoading.style('display', 'none');
-                     return; // Stop processing
-                }
-                // --- End suggestion logic ---
+            let actualRootName = rootPersonName; let found = false; const lowerCaseName = rootPersonName.toLowerCase();
+            for (const key of fullNodesMap.keys()) { if (key.toLowerCase() === lowerCaseName) { actualRootName = key; found = true; break; } }
 
-                rootPersonName = actualRootName; // Use correct case
+            if (!found) { /* Suggestion logic */ const suggestion = findClosestMatch(rootPersonName); if (suggestion) { searchMessage.html(`'${rootPersonName}' not found. Did you mean: <a onclick="updateGraph('${suggestion.replace(/'/g, "\\'")}')">${suggestion}</a>?`); } else { searchMessage.text(`'${rootPersonName}' not found.`); } searchLoading.style('display', 'none'); statsContentDiv.html(''); statsDescriptionDiv.html(''); return; }
+            rootPersonName = actualRootName; // Use correct case
+
+            const description = await fetchWikipediaDescription(rootPersonName); // Fetch description
+
+            setTimeout(() => { // Allow UI update for description
+                if (!fullGraphData) { /* Error checks */ searchMessage.text('Graph data not loaded.'); searchLoading.style('display', 'none'); return; }
 
                 console.log(`Updating graph for root: ${rootPersonName}`);
 
-                // Display Stats
-                const personInDegree = inDegrees.get(rootPersonName) || 0; const personOutDegree = outDegrees.get(rootPersonName) || 0;
-                const personRank = rankedNodes.findIndex(node => node.id === rootPersonName) + 1;
+                // Display Stats & Description
+                const personInDegree = inDegrees.get(rootPersonName) || 0; const personOutDegree = outDegrees.get(rootPersonName) || 0; const personRank = rankedNodes.findIndex(node => node.id === rootPersonName) + 1;
                 statsContentDiv.html(`<b>${rootPersonName}</b><br>Mentioned By: ${personInDegree}<br>Mentions: ${personOutDegree}<br>Rank (by mentions): ${personRank > 0 ? personRank : 'N/A'} / ${rankedNodes.length}`);
+                statsDescriptionDiv.text(description);
 
                 // Find ALL Neighbors (Union)
-                const outNeighbors = fullAdj.get(rootPersonName) || new Set(); const inNeighbors = fullRevAdj.get(rootPersonName) || new Set();
-                const allNeighborIds = new Set([...outNeighbors, ...inNeighbors]);
+                const outNeighbors = fullAdj.get(rootPersonName) || new Set(); const inNeighbors = fullRevAdj.get(rootPersonName) || new Set(); const allNeighborIds = new Set([...outNeighbors, ...inNeighbors]);
 
                 // Build Subgraph Nodes (including root)
                 const subgraphNodeIds = new Set([rootPersonName, ...allNeighborIds]);
-                const subgraphNodes = Array.from(subgraphNodeIds).map(id => {
-                    const originalNode = fullNodesMap.get(id); let group = "unknown";
-                    if (id === rootPersonName) { group = "root"; }
-                    else { const linksToRoot = inNeighbors.has(id); const linkedFromRoot = outNeighbors.has(id);
-                        if (linksToRoot && linkedFromRoot) group = "mutual_neighbor"; else if (linksToRoot) group = "in_neighbor"; else if (linkedFromRoot) group = "out_neighbor"; }
-                    return { id: id, url: originalNode?.url, group: group };
-                });
+                const subgraphNodes = Array.from(subgraphNodeIds).map(id => { const originalNode = fullNodesMap.get(id); let group = "unknown"; if (id === rootPersonName) { group = "root"; } else { const linksToRoot = inNeighbors.has(id); const linkedFromRoot = outNeighbors.has(id); if (linksToRoot && linkedFromRoot) group = "mutual_neighbor"; else if (linksToRoot) group = "in_neighbor"; else if (linkedFromRoot) group = "out_neighbor"; } return { id: id, url: originalNode?.url, group: group }; });
                 const subgraphNodesMap = new Map(subgraphNodes.map(n => [n.id, n]));
 
                 // Build Subgraph Links with Type
                 let subgraphLinks = []; const linkSet = new Set();
-                subgraphNodes.forEach(sourceNode => {
-                    const sourceId = sourceNode.id; const targetsInFullGraph = fullAdj.get(sourceId) || new Set();
-                    targetsInFullGraph.forEach(targetId => {
-                        if (subgraphNodesMap.has(targetId)) {
-                             const targetNode = subgraphNodesMap.get(targetId); linkSet.add(`${sourceId}->${targetId}`);
-                             subgraphLinks.push({ source: sourceNode, target: targetNode, type: 'potential_oneway' });
-                        }
-                    });
-                });
-                 subgraphLinks = subgraphLinks.map(link => {
-                    const sourceId = typeof link.source === 'object' ? link.source.id : link.source; const targetId = typeof link.target === 'object' ? link.target.id : link.target;
-                    let finalType = 'oneway';
-                    if (linkSet.has(`${targetId}->${sourceId}`)) {
-                        if (sourceId === rootPersonName || targetId === rootPersonName) finalType = 'mutual_root'; else finalType = 'mutual_neighbor';
-                    } else {
-                         if (sourceId === rootPersonName || targetId === rootPersonName) finalType = 'oneway_root'; else finalType = 'oneway_neighbor';
-                    }
-                    return { ...link, type: finalType };
-                 });
+                subgraphNodes.forEach(sourceNode => { const sourceId = sourceNode.id; const targetsInFullGraph = fullAdj.get(sourceId) || new Set(); targetsInFullGraph.forEach(targetId => { if (subgraphNodesMap.has(targetId)) { const targetNode = subgraphNodesMap.get(targetId); linkSet.add(`${sourceId}->${targetId}`); subgraphLinks.push({ source: sourceNode, target: targetNode, type: 'potential_oneway' }); } }); });
+                 subgraphLinks = subgraphLinks.map(link => { const sourceId = typeof link.source === 'object' ? link.source.id : link.source; const targetId = typeof link.target === 'object' ? link.target.id : link.target; let finalType = 'oneway'; if (linkSet.has(`${targetId}->${sourceId}`)) { if (sourceId === rootPersonName || targetId === rootPersonName) finalType = 'mutual_root'; else finalType = 'mutual_neighbor'; } else { if (sourceId === rootPersonName || targetId === rootPersonName) finalType = 'oneway_root'; else finalType = 'oneway_neighbor'; } return { ...link, type: finalType }; });
 
                 console.log(`Subgraph: ${subgraphNodes.length} nodes, ${subgraphLinks.length} links.`);
 
                 // UPDATE D3 ELEMENTS
-                svg.selectAll("g").remove(); const g = svg.append("g");
-                if (zoomBehavior) { svg.call(zoomBehavior); svg.call(zoomBehavior.transform, d3.zoomIdentity); }
-
-                linkSelection = g.append("g").attr("class", "links").selectAll("line").data(subgraphLinks).join("line")
-                    .attr("stroke-width", 1)
-                    .attr("class", d => d.type.includes('oneway') ? "oneway" : null); // Apply .oneway class for styling
-
+                svg.selectAll("g").remove(); const g = svg.append("g"); if (zoomBehavior) { svg.call(zoomBehavior); svg.call(zoomBehavior.transform, d3.zoomIdentity); }
+                linkSelection = g.append("g").attr("class", "links").selectAll("line").data(subgraphLinks).join("line") .attr("stroke-width", 1) .attr("class", d => d.type.includes('oneway') ? "oneway" : null); // Apply .oneway class for styling
                 nodeGroupSelection = g.append("g").attr("class", "nodes-and-labels").selectAll("g").data(subgraphNodes, d => d.id).join("g");
-
-                nodeSelection = nodeGroupSelection.append("circle").attr("class", "node-circle")
-                    .attr("fill", d => nodeColors[d.group] || "#ccc") // Use updated colors, default gray
-                    .attr("r", d => d.group === 'root' ? 10 : 5)
-                    .call(drag(simulationInstance))
-                    .on("mouseover", handleMouseOver).on("mousemove", handleMouseMove).on("mouseout", handleMouseOut).on("dblclick", handleDoubleClick);
-
-                labelSelection = nodeGroupSelection.append("text").text(d => d.id)
-                    .attr('x', 0).attr('y', d => (d.group === 'root' ? 10 : 5) + 12);
-
+                nodeSelection = nodeGroupSelection.append("circle").attr("class", "node-circle") .attr("fill", d => nodeColors[d.group] || "#ccc") .attr("r", d => d.group === 'root' ? 10 : 5) .call(drag(simulationInstance)) .on("mouseover", handleMouseOver).on("mousemove", handleMouseMove).on("mouseout", handleMouseOut).on("dblclick", handleDoubleClick);
+                labelSelection = nodeGroupSelection.append("text").text(d => d.id) .attr('x', 0).attr('y', d => (d.group === 'root' ? 10 : 5) + 12);
                 // UPDATE SIMULATION
                 simulationInstance.nodes(subgraphNodes); simulationInstance.force("link").links(subgraphLinks); simulationInstance.alpha(1).restart();
-
                 searchLoading.style('display', 'none'); console.log("Graph update complete.");
-
-            }, 50);
-        }
+            }, 50); // Keep small timeout
+         }
 
         // --- Animation Tick Function ---
-        function ticked() {
-            if (linkSelection && linkSelection.nodes().length > 0) {
-                 linkSelection
-                    .attr("x1", d => d.source?.x || 0) .attr("y1", d => d.source?.y || 0)
-                    .attr("x2", d => d.target?.x || 0) .attr("y2", d => d.target?.y || 0);
-            }
-           if (nodeGroupSelection && nodeGroupSelection.nodes().length > 0) {
-                 nodeGroupSelection.attr("transform", d => `translate(${d.x || width/2},${d.y || height/2})`);
-            }
+        function ticked() { /* ... implementation ... */
+            if (linkSelection && linkSelection.nodes().length > 0) { linkSelection .attr("x1", d => d.source?.x || 0) .attr("y1", d => d.source?.y || 0) .attr("x2", d => d.target?.x || 0) .attr("y2", d => d.target?.y || 0); }
+           if (nodeGroupSelection && nodeGroupSelection.nodes().length > 0) { nodeGroupSelection.attr("transform", d => `translate(${d.x || width/2},${d.y || height/2})`); }
         }
 
         // --- Event Handlers ---
-        function handleMouseOver(event, d) { /* Tooltip + Enlarge */ tooltip.style("opacity", 1).html(d.id); d3.select(this).transition().duration(100).attr("r", d.group === 'root' ? 15 : 10); }
-        function handleMouseMove(event) { /* Tooltip follow */ tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px"); }
-        function handleMouseOut(event, d) { /* Hide Tooltip + Reset size */ tooltip.style("opacity", 0); d3.select(this).transition().duration(100).attr("r", d.group === 'root' ? 10 : 5); }
-        function handleDoubleClick(event, d) { /* Open URL */ if (d.url) window.open(d.url, '_blank'); else console.warn("Node clicked, but no URL found:", d); }
+        function handleMouseOver(event, d) { /* ... implementation ... */ tooltip.style("opacity", 1).html(d.id); d3.select(this).transition().duration(100).attr("r", d.group === 'root' ? 15 : 10); }
+        function handleMouseMove(event) { /* ... implementation ... */ tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px"); }
+        function handleMouseOut(event, d) { /* ... implementation ... */ tooltip.style("opacity", 0); d3.select(this).transition().duration(100).attr("r", d.group === 'root' ? 10 : 5); }
+        function handleDoubleClick(event, d) { /* ... implementation ... */ if (d.url) window.open(d.url, '_blank'); else console.warn("Node clicked, but no URL found:", d); }
 
         // --- Search Event Listeners ---
         const searchInput = document.getElementById('search-input'); const searchButton = document.getElementById('search-button');
-        searchButton.addEventListener('click', () => { /* Trigger update */ const searchTerm = searchInput.value.trim(); if (searchTerm) updateGraph(searchTerm); });
-        searchInput.addEventListener('keypress', function(event) { /* Trigger update on Enter */ if (event.key === 'Enter') { const searchTerm = searchInput.value.trim(); if (searchTerm) updateGraph(searchTerm); } });
+        searchButton.addEventListener('click', () => { /* ... implementation ... */ const searchTerm = searchInput.value.trim(); if (searchTerm) updateGraph(searchTerm); });
+        searchInput.addEventListener('keypress', function(event) { /* ... implementation ... */ if (event.key === 'Enter') { const searchTerm = searchInput.value.trim(); if (searchTerm) updateGraph(searchTerm); } });
 
         // --- Explanation Toggle Listener ---
-        explanationToggle.on('click', () => {
-             const isExpanded = explanationContent.style('display') === 'block';
-             explanationContent.style('display', isExpanded ? 'none' : 'block');
-             explanationContainer.classed('expanded', !isExpanded);
+        explanationToggle.on('click', () => { /* ... implementation ... */
+             const isExpanded = explanationContent.style('display') === 'block'; explanationContent.style('display', isExpanded ? 'none' : 'block'); explanationContainer.classed('expanded', !isExpanded);
          });
 
     </script>
