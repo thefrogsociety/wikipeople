@@ -1,0 +1,9 @@
+venv/
+__pycache__/
+*.pyc
+edge-list.csv
+people-list.txt
+people-graph.csv
+full_graph.json
+deploy.py
+simplewiki-latest-pages-articles-multistream.xml.bz2

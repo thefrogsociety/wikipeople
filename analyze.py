@@ -14,7 +14,6 @@ if df.empty:
     print(f"Error: {GRAPH_FILE} is empty.")
     exit()
 
-# create a directed graph (since links go one way)
 G = nx.from_pandas_edgelist(df, 'source', 'target', create_using=nx.DiGraph())
 
 print(f"--- WikiPeople Analysis ---")
@@ -24,7 +23,6 @@ print("---------------------------------")
 
 print("Analyzing 'hub' people (most mentioned)...")
 
-# check 'in_degree' (how many links point TO them)
 hub_scores = dict(G.in_degree())
 hub_scores = {person: score for person, score in hub_scores.items() if score > 0}
 sorted_hubs = sorted(hub_scores.items(), key=lambda item: item[1], reverse=True)
